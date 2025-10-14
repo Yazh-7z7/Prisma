@@ -15,19 +15,18 @@ def query_ollama(prompt: str, model: str = "gemma3:4b"):
         stderr=subprocess.PIPE,
         text=True,
         encoding="utf-8",
-        errors="replace"   # replaces problematic characters instead of crashing
+        errors="replace"
     )
 
     output, error = process.communicate(input=prompt)
 
     if error and error.strip():
-        print("⚠️ Ollama error:", error)
+        print(" Ollama error:", error)
     return output.strip()
 
 def generate_insights(file_path: str):
     """
-    Generates 5 discussion insights/questions for the given dataset
-    using Ollama's local LLM.
+    Generates structured, readable insights using Ollama.
     """
     try:
         df = pd.read_csv(file_path, encoding='utf-8')
@@ -37,24 +36,36 @@ def generate_insights(file_path: str):
     summary = df.describe(include='all').to_string()
 
     prompt = f"""
-    You are a data analyst AI. Analyze this dataset summary and generate 5 meaningful discussion questions 
-    or insights that a teacher or business manager might want to discuss.
+    You are an AI Data Analyst named Prisma. Analyze the dataset below and generate
+    7 highly readable insights in structured markdown format.
+
+    Each insight should include:
+    1. A clear **title**
+    2. A short **interpretation**
+    3. A **reason or possible cause**
+    4. A **potential action or next step**
+
     Dataset summary:
     {summary}
+
+    Format response in bullet points or numbered list. Avoid technical jargon.
     """
 
-    print("🧠 Generating insights using Ollama...")
+    print("🧠 Generating enhanced insights using Ollama...")
+    response = query_ollama(prompt)
+    return response
+
+
+    print(" Generating insights using Ollama...")
     response = query_ollama(prompt)
     return response
 
 if __name__ == "__main__":
     data_dir = "outputs"
     if not os.path.exists(data_dir):
-        print("⚠️ No 'outputs' folder found. Please run preprocessing first.")
+        print(" No 'outputs' folder found. Please run preprocessing first.")
     else:
         for file in os.listdir(data_dir):
             if file.endswith("_cleaned.csv"):
                 path = os.path.join(data_dir, file)
-                print(f"\n📊 Insights for {file}:")
-                insights = generate_insights(path)
-                print(insights)
+

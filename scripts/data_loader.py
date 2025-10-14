@@ -24,4 +24,4 @@ if __name__ == "__main__":
     data_dir = "data"
     for file in os.listdir(data_dir):
         df = load_data(os.path.join(data_dir, file))
-        print(f"✅ Loaded {file} with shape {df.shape}")
+        print(f" Loaded {file} with shape {df.shape}")

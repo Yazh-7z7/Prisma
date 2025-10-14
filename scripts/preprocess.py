@@ -47,7 +47,7 @@ def summarize_dataset(df: pd.DataFrame, name="Dataset"):
     """
     Prints key statistics and structure.
     """
-    print(f"\n📊 {name} Summary:")
+    print(f"\n {name} Summary:")
     print(f"Shape: {df.shape}")
     print(f"Columns: {list(df.columns)}")
     print(f"Missing values:\n{df.isnull().sum()}")
@@ -76,4 +76,6 @@ if __name__ == "__main__":
         output_path = os.path.join(output_dir, f"{name}_cleaned.csv")
         scaled_df.to_csv(output_path, index=False)
 
-        print(f"✅ Cleaned & saved: {output_path}")
+        print(f" Cleaned & saved: {output_path}")
+df.to_csv("processed_data.csv", index=False)
+print(" Preprocessed data saved to data/processed_data.csv")
