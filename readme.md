@@ -8,7 +8,7 @@
 ### 🚀 Tech Stack
 - **Python 3.13**
 - **Streamlit** — Front-end for interactive data upload and visualization  
-- **Ollama (Mistral)** — Local LLM for generating insights  
+- **Ollama (Gemma3:4b)** — Local LLM for generating insights  
 - **MySQL** — For structured data storage and retrieval  
 - **Pandas & Scikit-learn** — For data cleaning and preprocessing  
 
