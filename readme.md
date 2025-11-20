@@ -34,7 +34,8 @@ prisma/
 git clone https://github.com/YOURUSERNAME/Prisma.git
 cd Prisma
 pip install -r requirements.txt
-streamlit run app.py
+cd frontend
+python -m streamlit run app.py
 
 Example Use Case
 
