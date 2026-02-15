@@ -18,32 +18,24 @@ class AnthropicProvider(LLMProvider):
         self.client = anthropic.Anthropic(api_key=api_key)
     
     def generate(self, prompt, model="claude-3-sonnet-20240229"):
-        try:
             message = self.client.messages.create(
                 model=model,
                 max_tokens=1024,
                 messages=[{"role": "user", "content": prompt}]
             )
             return message.content[0].text
-        except Exception as e:
-            logging.error(f"Anthropic API error: {e}")
-            return None
 
 class OpenAIProvider(LLMProvider):
     def __init__(self, api_key):
         self.client = openai.OpenAI(api_key=api_key)
 
     def generate(self, prompt, model="gpt-4-turbo-preview"):
-        try:
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=1024
             )
             return response.choices[0].message.content
-        except Exception as e:
-            logging.error(f"OpenAI API error: {e}")
-            return None
 
 class OllamaProvider(LLMProvider):
     def __init__(self):
@@ -52,15 +44,16 @@ class OllamaProvider(LLMProvider):
     
     def generate(self, prompt, model="gemma2:latest"):
         if ollama is None:
-            return "Ollama not available."
+            raise ImportError("Ollama library not installed. Please install it with `pip install ollama`.")
+            
         try:
             response = ollama.chat(model=model, messages=[
                 {'role': 'user', 'content': prompt},
             ])
             return response['message']['content']
         except Exception as e:
-            logging.error(f"Ollama API error: {e}")
-            return None
+            # Re-raise with a clear message for the UI
+            raise ConnectionError(f"Ollama Error: {str(e)}. Ensure 'ollama serve' is running and model '{model}' is pulled.")
 
 class LLMGenerator:
     def __init__(self, config):
@@ -81,7 +74,7 @@ class LLMGenerator:
         """
         Generates insights using the specified provider and prompt strategy.
         """
-        from utils import load_prompts
+        from src.utils import load_prompts
         
         prompts = load_prompts()
         if prompt_template_name not in prompts:

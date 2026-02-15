@@ -14,4 +14,5 @@ fuzzywuzzy
 python-Levenshtein
 streamlit
 scikit-learn
-mysql-connector-python  # Preserving from original description usage
+mysql-connector-python
+openpyxl

@@ -59,11 +59,16 @@ class StatisticalEngine:
                 col1 = columns[i]
                 col2 = columns[j]
                 
+                # Drop NaNs pairwise
+                temp_df = numeric_df[[col1, col2]].dropna()
+                if len(temp_df) < 2:
+                    continue
+
                 # Pearson
-                r_p, p_p = stats.pearsonr(numeric_df[col1].dropna(), numeric_df[col2].dropna())
+                r_p, p_p = stats.pearsonr(temp_df[col1], temp_df[col2])
                 
                 # Spearman
-                r_s, p_s = stats.spearmanr(numeric_df[col1].dropna(), numeric_df[col2].dropna())
+                r_s, p_s = stats.spearmanr(temp_df[col1], temp_df[col2])
                 
                 # Determine if significant
                 is_significant = (p_p < self.significance_level) or (p_s < self.significance_level)
