@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import os
@@ -37,7 +36,7 @@ def load_config():
 
 config = load_config()
 
-# Initialize Session State
+# Initialize Session State - FIXED: Added model_name and provider
 if 'data' not in st.session_state:
     st.session_state.data = None
 if 'analysis_results' not in st.session_state:
@@ -46,6 +45,10 @@ if 'insights' not in st.session_state:
     st.session_state.insights = None
 if 'validation_results' not in st.session_state:
     st.session_state.validation_results = None
+if 'model_name' not in st.session_state:
+    st.session_state.model_name = "gemma:2b"
+if 'provider' not in st.session_state:
+    st.session_state.provider = "ollama"
 
 # --- SIDEBAR ---
 with st.sidebar:
@@ -54,20 +57,33 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # 1. Data Upload
+    # 1. Data Upload - FIXED: Better error handling
     st.subheader("📁 Data Configuration")
     uploaded_file = st.file_uploader("Upload Dataset", type=['csv', 'xlsx'])
     
     if uploaded_file is not None:
         try:
             if uploaded_file.name.endswith('.csv'):
-                df = pd.read_csv(uploaded_file)
+                df = pd.read_csv(uploaded_file, encoding='utf-8')
             else:
-                df = pd.read_excel(uploaded_file)
-            st.session_state.data = df
-            st.success(f"Loaded {len(df)} rows, {len(df.columns)} columns")
+                df = pd.read_excel(uploaded_file, engine='openpyxl')
+            
+            # Validate dataframe
+            if df.empty:
+                st.error("❌ The uploaded file is empty.")
+                st.session_state.data = None
+            else:
+                st.session_state.data = df
+                st.success(f"✅ Loaded {len(df)} rows, {len(df.columns)} columns")
+        except UnicodeDecodeError:
+            st.error("❌ File encoding error. Try saving your CSV as UTF-8.")
+            st.session_state.data = None
+        except pd.errors.EmptyDataError:
+            st.error("❌ The file appears to be empty.")
+            st.session_state.data = None
         except Exception as e:
-            st.error(f"Error loading file: {e}")
+            st.error(f"❌ Error loading file: {str(e)}")
+            st.session_state.data = None
 
     st.markdown("---")
 
@@ -85,7 +101,7 @@ with st.sidebar:
             config['llm']['api_keys']['openai'] = openai_key
             st.toast("API Keys saved for session!", icon="✅")
 
-    # 3. Model Selection
+    # 3. Model Selection - FIXED: Use session state
     st.subheader("🤖 Model Selection")
     
     selected_provider = st.radio(
@@ -94,18 +110,19 @@ with st.sidebar:
         index=0
     )
     
-    model_name = "gemma:2b"
-    provider = "ollama"
-    
     if "Ollama" in selected_provider:
-        provider = "ollama"
-        model_name = st.text_input("Model Name", value="gemma:2b")
+        st.session_state.provider = "ollama"
+        st.session_state.model_name = st.text_input("Model Name", value=st.session_state.model_name)
     elif "Anthropic" in selected_provider:
-        provider = "anthropic"
-        model_name = st.selectbox("Model", ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"])
+        st.session_state.provider = "anthropic"
+        st.session_state.model_name = st.selectbox("Model", 
+            ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
+        )
     elif "OpenAI" in selected_provider:
-        provider = "openai"
-        model_name = st.selectbox("Model", ["gpt-4-turbo", "gpt-3.5-turbo"])
+        st.session_state.provider = "openai"
+        st.session_state.model_name = st.selectbox("Model", 
+            ["gpt-4-turbo", "gpt-3.5-turbo"]
+        )
 
     # 4. Analysis Settings
     st.subheader("⚙️ Settings")
@@ -122,49 +139,58 @@ tab_dashboard, tab_data, tab_truth, tab_insights, tab_validation, tab_reports = 
     "📊 Dashboard", "📈 Data Preview", "🔍 Ground Truth", "💡 Insights", "✅ Validation", "📄 Reports"
 ])
 
-# --- LOGIC HANDLERS ---
+# --- LOGIC HANDLERS - FIXED: Use session state variables ---
 if run_btn and st.session_state.data is not None:
     with st.spinner("Running Analysis Pipeline..."):
-        # 1. Statistical Analysis
-        stat_engine = StatisticalEngine(config)
-        ground_truth = stat_engine.analyze_dataset(st.session_state.data)
-        st.session_state.analysis_results = ground_truth
-        
-        # 2. Generate Insights
-        llm_gen = LLMGenerator(config)
-        # Verify keys are set if needed
-        if provider != 'ollama':
-            # Temporary override for this instance
-            if provider == 'anthropic':
-                llm_gen.anthropic_key = config['llm']['api_keys']['anthropic']
-            elif provider == 'openai':
-                llm_gen.openai_key = config['llm']['api_keys']['openai']
-
-        # Convert ground truth to string for the prompt
-        import json
-        summary_str = json.dumps(ground_truth, indent=2, default=str)
-
         try:
+            # 1. Statistical Analysis
+            stat_engine = StatisticalEngine(config)
+            ground_truth = stat_engine.analyze_dataset(st.session_state.data)
+            st.session_state.analysis_results = ground_truth
+            
+            # 2. Generate Insights
+            llm_gen = LLMGenerator(config)
+            # Verify keys are set if needed
+            if st.session_state.provider != 'ollama':
+                # Temporary override for this instance
+                if st.session_state.provider == 'anthropic':
+                    if not config.get('llm', {}).get('api_keys', {}).get('anthropic'):
+                        st.error("❌ Anthropic API key not set. Please add it in the sidebar.")
+                        st.stop()
+                    llm_gen.anthropic_key = config['llm']['api_keys']['anthropic']
+                elif st.session_state.provider == 'openai':
+                    if not config.get('llm', {}).get('api_keys', {}).get('openai'):
+                        st.error("❌ OpenAI API key not set. Please add it in the sidebar.")
+                        st.stop()
+                    llm_gen.openai_key = config['llm']['api_keys']['openai']
+
+            # Convert ground truth to string for the prompt
+            import json
+            summary_str = json.dumps(ground_truth, indent=2, default=str)
+
             raw_response = llm_gen.generate_insights(
                 dataset_summary=summary_str,
-                model_provider=provider, 
-                model_name=model_name
+                model_provider=st.session_state.provider,  # FIXED
+                model_name=st.session_state.model_name      # FIXED
             )
-        except Exception as e:
-            st.error(f"Failed to generate insights: {e}")
-            st.stop()
+                
+            # 3. Parse Insights
+            parser = InsightParser()
+            parsed_claims = parser.parse_insights(raw_response)
+            st.session_state.insights = parsed_claims
             
-        # 3. Parse Insights
-        parser = InsightParser()
-        parsed_claims = parser.parse_insights(raw_response)
-        st.session_state.insights = parsed_claims
-        
-        # 4. Validate
-        validator = Validator(config)
-        validation_results = validator.validate_claims(parsed_claims, ground_truth, st.session_state.data.columns)
-        st.session_state.validation_results = validation_results
-        
-        st.success("Analysis Complete!")
+            # 4. Validate
+            validator = Validator(config)
+            validation_results = validator.validate_claims(parsed_claims, ground_truth, st.session_state.data.columns)
+            st.session_state.validation_results = validation_results
+            
+            st.success("✅ Analysis Complete!")
+            
+        except Exception as e:
+            st.error(f"❌ Analysis failed: {str(e)}")
+            import traceback
+            with st.expander("Show Error Details"):
+                st.code(traceback.format_exc())
 
 
 # --- TABS CONTENT ---
@@ -223,10 +249,12 @@ with tab_truth:
         
         # Correlation Matrix
         numeric_df = st.session_state.data.select_dtypes(include=['float64', 'int64'])
-        if not numeric_df.empty:
+        if not numeric_df.empty and len(numeric_df.columns) >= 2:
             st.markdown("### Correlation Matrix")
             corr = numeric_df.corr()
             render_correlation_heatmap(corr)
+        else:
+            st.info("Need at least 2 numeric columns for correlation analysis.")
         
         # Show results from Stat Engine if available
         if st.session_state.analysis_results:
@@ -249,8 +277,9 @@ with tab_truth:
     else:
         st.warning("Please upload a dataset.")
 
+# FIXED: Check for both validation results AND model_name in session state
 with tab_insights:
-    if st.session_state.validation_results:
+    if st.session_state.validation_results and 'model_name' in st.session_state:
         st.subheader("Generated Insights & Validation")
         
         filter_status = st.multiselect(
@@ -276,7 +305,7 @@ with tab_insights:
                     'ground_truth': insight_data.get('ground_truth')
                 }
                 display_obj['variables'] = insight_data.get('extracted_vars', [])
-                display_obj['model'] = model_name
+                display_obj['model'] = st.session_state.model_name  # FIXED
                 
                 render_insight_card(display_obj)
                 count += 1
@@ -333,22 +362,25 @@ with tab_reports:
         report_name = st.text_input("Report Name", default_name)
         
         if st.button("Generate Report"):
-            report_gen = ReportGenerator(config)
-            
-            # Metrics calculation again for report
-            metrics_calc = HallucinationDetector(config)
-            metrics = metrics_calc.calculate_metrics(st.session_state.validation_results)
-            
-            # Use internal method or expose one
-            # We recreate usage from report_generator.py logic
-            report_gen.generate_reports(
-                st.session_state.validation_results, 
-                metrics, 
-                uploaded_file.name if uploaded_file else "dataset", 
-                model_name
-            )
-            st.success(f"Report '{report_name}' generated successfully in results/reports/")
-            st.balloons()
+            try:
+                report_gen = ReportGenerator(config)
+                
+                # Metrics calculation again for report
+                metrics_calc = HallucinationDetector(config)
+                metrics = metrics_calc.calculate_metrics(st.session_state.validation_results)
+                
+                # Use internal method or expose one
+                # We recreate usage from report_generator.py logic
+                report_gen.generate_reports(
+                    st.session_state.validation_results, 
+                    metrics, 
+                    uploaded_file.name if uploaded_file else "dataset", 
+                    st.session_state.model_name  # FIXED
+                )
+                st.success(f"✅ Report '{report_name}' generated successfully in results/reports/")
+                st.balloons()
+            except Exception as e:
+                st.error(f"Failed to generate report: {str(e)}")
             
         st.markdown("### Export Options")
         
