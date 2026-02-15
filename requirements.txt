@@ -1,0 +1,17 @@
+pandas
+numpy
+scipy
+statsmodels
+matplotlib
+seaborn
+plotly
+openai
+anthropic
+ollama
+pyyaml
+python-dotenv
+fuzzywuzzy
+python-Levenshtein
+streamlit
+scikit-learn
+mysql-connector-python  # Preserving from original description usage
