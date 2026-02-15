@@ -1,35 +1,33 @@
-# 🧠 Prisma: Hallucination-Aware Insight Generator
+# Prisma: Hallucination-Aware Insight Generator
 
 **Prisma** is an advanced AI system designed to generate meaningful data insights while rigorously detecting and preventing hallucinations. It combines the creative power of Large Language Models (LLMs) with the precision of statistical analysis to ensure every claim is backed by data.
 
-![Prisma UI](https://via.placeholder.com/800x400?text=Prisma+Dashboard+Preview)
-
 ---
 
-## 🚀 Key Features
+## Key Features
 
-### 1. 🤖 Multi-Model Insight Generation
+### 1. Multi-Model Insight Generation
 -   **Universal Support**: Works with **Ollama (Local)**, **Anthropic (Claude 3)**, and **OpenAI (GPT-4)**.
 -   **Context-Aware**: Feeds statistical summaries to LLMs to ground generation in reality.
 -   **Prompt Strategies**: Uses specialized prompts to encourage analytical depth over generic observations.
 
-### 2. 🛡️ Statistical Guardrails (The "Truth Engine")
+### 2. Statistical Guardrails (The "Truth Engine")
 Prisma doesn't just trust the LLM. It verifies every claim using a robust statistical engine:
 -   **Correlation Analysis**: Pearson & Spearman correlations with p-value significance testing.
 -   **Group Differences**: T-tests and ANOVA to validate claims about group variances (e.g., *"Men have higher heart disease rates"*).
 -   **Categorical Associations**: Chi-Square tests for relationships between categorical variables.
 -   **Distribution Checks**: Verifies claims about means, medians, and outliers using Z-scores and IQR.
 
-### 3. 🕵️ Hallucination Detection
+### 3. Hallucination Detection
 Every generated insight undergoes a 3-step validation process:
 1.  **Parsing**: Extracts variables, relationships, and claimed strength/direction from natural language.
 2.  **Verification**: queries the pre-computed "Ground Truth" for evidence.
 3.  **Classification**: Flags insights as:
-    -   ✅ **VALID**: Statistically supported.
-    -   ⚠️ **UNVERIFIED**: specific variables not found or relationship too complex.
-    -   ❌ **HALLUCINATION**: Contradicted by data (e.g., claiming positive correlation when it's negative or insignificant).
+    -    **VALID**: Statistically supported.
+    -    **UNVERIFIED**: specific variables not found or relationship too complex.
+    -    **HALLUCINATION**: Contradicted by data (e.g., claiming positive correlation when it's negative or insignificant).
 
-### 4. 🖥️ Interactive Dashboard (Streamlit)
+### 4. Interactive Dashboard (Streamlit)
 A modern, glassmorphic UI for real-time analysis:
 -   **Drag & Drop Data**: Upload CSV/Excel files instantly.
 -   **Live Validation**: See insights validated in real-time with color-coded badges.
@@ -38,7 +36,7 @@ A modern, glassmorphic UI for real-time analysis:
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 The system is built on a modular pipeline architecture:
 
@@ -67,7 +65,7 @@ graph TD
 
 ---
 
-## 🛠️ Installation & Setup
+## Installation & Setup
 
 ### Prerequisites
 -   Python 3.10+
@@ -103,7 +101,7 @@ python main.py --dataset data/raw/healthcare_dataset_stroke_data.csv --provider 
 
 ---
 
-## 📊 Validation Logic Details
+## Validation Logic Details
 
 ### How we define "Hallucination"
 In the context of Data Analysis, a hallucination is defined as:
@@ -119,7 +117,7 @@ In the context of Data Analysis, a hallucination is defined as:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 Prisma/
@@ -140,8 +138,6 @@ Prisma/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 Contributions are welcome! Please read the [implementation plan](implementation_plan.md) to understand the roadmap.
 
-## 📄 License
-MIT License
