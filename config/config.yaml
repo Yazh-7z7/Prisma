@@ -1,44 +1,26 @@
-# System Configuration
-
-# Data Settings
-data:
-  raw_dir: "data/raw"
-  ground_truth_dir: "data/ground_truth"
-  datasets:
-    - name: "strokes"
-      filename: "healthcare_dataset_stroke_data.csv"
-    - name: "diabetes"
-      filename: "diabetes.csv"
-    - name: "kidney_disease"
-      filename: "kidney_disease.csv"
-# LLM Settings
 llm:
-  models:
-    - "claude-3-sonnet-20240229"
-    - "gpt-4-turbo-preview"
-  temperature: 0.7
-  max_tokens: 1500
   api_keys:
-    anthropic: "${ANTHROPIC_API_KEY}"
-    openai: "${OPENAI_API_KEY}"
+    anthropic: ""
+    openai: ""
+  default_provider: "ollama"
+  default_model: "gemma:2b"
 
-# Statistical Engine Settings
 statistics:
   significance_level: 0.05
-  correlation_methods: ["pearson", "spearman"]
-  min_sample_size: 30
+  correlation_threshold: 0.3
   effect_size_thresholds:
-    weak: 0.1
-    moderate: 0.3
-    strong: 0.5
+    small: 0.2
+    medium: 0.5
+    large: 0.8
 
-# Validation Settings
+statistical_analysis:
+  significance_level: 0.05
+  correlation_threshold: 0.3
+
 validation:
-  match_threshold: 0.8  # Fuzzy matching threshold for variable names
-  strict_direction: true # Must agree on positive/negative correlation
+  fuzzy_match_threshold: 0.85
 
-# Reporting Settings
-reporting:
-  output_dir: "results"
-  generate_html: true
-  generate_markdown: true
+output:
+  results_dir: "results"
+  reports_dir: "results/reports"
+  metrics_dir: "results/metrics"
