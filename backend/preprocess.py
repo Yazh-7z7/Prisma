@@ -77,5 +77,3 @@ if __name__ == "__main__":
         scaled_df.to_csv(output_path, index=False)
 
         print(f" Cleaned & saved: {output_path}")
-df.to_csv("processed_data.csv", index=False)
-print(" Preprocessed data saved to data/processed_data.csv")

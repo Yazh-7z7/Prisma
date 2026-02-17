@@ -55,11 +55,6 @@ def generate_insights(file_path: str):
     response = query_ollama(prompt)
     return response
 
-
-    print(" Generating insights using Ollama...")
-    response = query_ollama(prompt)
-    return response
-
 if __name__ == "__main__":
     data_dir = "outputs"
     if not os.path.exists(data_dir):
@@ -68,4 +63,7 @@ if __name__ == "__main__":
         for file in os.listdir(data_dir):
             if file.endswith("_cleaned.csv"):
                 path = os.path.join(data_dir, file)
+                print(f" Generating insights for {file}...")
+                insights = generate_insights(path)
+                print(f"\n{insights}\n")
 

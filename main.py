@@ -25,7 +25,16 @@ def main():
     config = load_config("config/config.yaml")
     
     # 1. Load Data
-    dataset_path = args.dataset if args.dataset else os.path.join(config['data']['raw_dir'], config['data']['datasets'][0]['filename'])
+    if args.dataset:
+        dataset_path = args.dataset
+    else:
+        # Try to get from config, or use default
+        if 'data' in config and 'raw_dir' in config['data'] and 'datasets' in config['data'] and len(config['data']['datasets']) > 0:
+            dataset_path = os.path.join(config['data']['raw_dir'], config['data']['datasets'][0]['filename'])
+        else:
+            # Default fallback
+            dataset_path = "data/raw/healthcare_dataset_stroke_data.csv"
+    
     logger.info(f"Loading dataset from {dataset_path}...")
     
     if not os.path.exists(dataset_path):

@@ -6,7 +6,7 @@ class Validator:
     def __init__(self, config):
         self.config = config
         self.logger = logging.getLogger("Prisma.Validator")
-        self.match_threshold = config['validation']['match_threshold'] * 100
+        self.match_threshold = config['validation']['fuzzy_match_threshold'] * 100
 
     def validate_claims(self, claims, ground_truth, df_columns):
         """
@@ -26,7 +26,14 @@ class Validator:
         Validates a single claim.
         """
         # 1. Extract variables from claim text if not already structured
-        text = claim['original_text']
+        text = claim.get('original_text', '')
+        if not text:
+            return {
+                "claim": claim,
+                "extracted_vars": [],
+                "status": "UNVERIFIED",
+                "reason": "No text found in claim"
+            }
         
         # Try to find variables mentioned in the text
         mentioned_vars = self._extract_variables(text, df_columns)
@@ -145,7 +152,7 @@ class Validator:
         # Check against sample size in summary
         summary = ground_truth.get('summary', {}).get('stats', {})
         # Assuming sample size is consistent across vars, pick one
-        if summary:
+        if summary and len(summary) > 0:
             first_var = list(summary.keys())[0]
             count = summary[first_var].get('count', 0)
             
@@ -157,7 +164,7 @@ class Validator:
                         claim_result["status"] = "VALID"
                         claim_result["reason"] = f"Valid sample size (approx {int(val)})"
                         return claim_result
-                except:
+                except (ValueError, TypeError):
                     continue
                     
         claim_result["status"] = "UNVERIFIED"
@@ -174,9 +181,15 @@ class Validator:
             
         text_lower = text.lower()
         
-        # Extract numbers
+        # Extract numbers with error handling
         params = re.findall(r"[-+]?\d*\.\d+|\d+", text)
-        numbers = [float(p) for p in params]
+        numbers = []
+        for p in params:
+            try:
+                numbers.append(float(p))
+            except ValueError:
+                # Skip non-numeric matches
+                continue
         
         # Check Mean/Central Tendency
         if any(keyword in text_lower for keyword in ["mean", "average", "centered around", "typical"]):

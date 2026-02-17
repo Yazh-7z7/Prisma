@@ -18,6 +18,11 @@ class InsightParser:
         
         insights = []
         
+        # Validate input
+        if not llm_output or not isinstance(llm_output, str):
+            self.logger.warning("Empty or invalid LLM output provided")
+            return insights
+        
         # Split by lines or numbered lists
         lines = llm_output.split('\n')
         
@@ -52,7 +57,9 @@ class InsightParser:
                     "variables": [], # To be filled by Validator or advanced parsing
                     "relationship": "correlation", # Default assumption
                     "direction": "unknown",
-                    "strength": "unknown"
+                    "strength": "unknown",
+                    "confidence_score": 0.5, # Default confidence score
+                    "type": "correlation" # Default type
                 })
 
         # Advanced: Use an LLM to parse the output into JSON if the prompt asked for JSON.
@@ -62,17 +69,21 @@ class InsightParser:
         for insight in insights:
             text = insight['original_text'].lower()
             
-            if "positive" in text or "increases" in text and "increases" in text.replace("increases", "", 1): # "X increases as Y increases"
+            # Fix direction detection logic
+            if "positive" in text or ("increases" in text and "decreases" not in text):
                 insight['direction'] = "positive"
             elif "negative" in text or "decreases" in text:
                 insight['direction'] = "negative"
                 
             if "strong" in text or "significant" in text:
                 insight['strength'] = "strong"
+                insight['confidence_score'] = 0.8  # Higher confidence for strong claims
             elif "weak" in text:
                 insight['strength'] = "weak"
+                insight['confidence_score'] = 0.4  # Lower confidence for weak claims
             elif "moderate" in text:
                 insight['strength'] = "moderate"
+                insight['confidence_score'] = 0.6  # Medium confidence for moderate claims
 
         self.logger.info(f"Extracted {len(insights)} potential insights.")
         return insights

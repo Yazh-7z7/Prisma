@@ -17,6 +17,25 @@ class StatisticalEngine:
         """
         self.logger.info("Starting statistical analysis...")
         
+        # Validate input
+        if df is None or df.empty:
+            self.logger.warning("Empty or None dataframe provided")
+            return {
+                "summary": {"stats": {}, "dtypes": {}},
+                "correlations": [],
+                "group_differences": [],
+                "categorical_associations": []
+            }
+        
+        if len(df.columns) == 0:
+            self.logger.warning("Dataframe has no columns")
+            return {
+                "summary": {"stats": {}, "dtypes": {}},
+                "correlations": [],
+                "group_differences": [],
+                "categorical_associations": []
+            }
+        
         analysis_results = {
             "summary": self._get_summary_stats(df),
             "correlations": self._calculate_correlations(df),
@@ -63,12 +82,21 @@ class StatisticalEngine:
                 temp_df = numeric_df[[col1, col2]].dropna()
                 if len(temp_df) < 2:
                     continue
-
-                # Pearson
-                r_p, p_p = stats.pearsonr(temp_df[col1], temp_df[col2])
                 
-                # Spearman
-                r_s, p_s = stats.spearmanr(temp_df[col1], temp_df[col2])
+                # Check for constant values (variance = 0) which causes errors in correlation
+                if temp_df[col1].std() == 0 or temp_df[col2].std() == 0:
+                    self.logger.debug(f"Skipping {col1} vs {col2}: constant values detected")
+                    continue
+
+                try:
+                    # Pearson
+                    r_p, p_p = stats.pearsonr(temp_df[col1], temp_df[col2])
+                    
+                    # Spearman
+                    r_s, p_s = stats.spearmanr(temp_df[col1], temp_df[col2])
+                except (ValueError, RuntimeWarning) as e:
+                    self.logger.warning(f"Correlation calculation failed for {col1} vs {col2}: {e}")
+                    continue
                 
                 # Determine if significant
                 is_significant = (p_p < self.significance_level) or (p_s < self.significance_level)
@@ -108,9 +136,16 @@ class StatisticalEngine:
                 if len(group_names) < 2:
                     continue
                 
-                group_data = [groups.get_group(g).dropna() for g in group_names]
-                # Prepare for tests (remove empty groups)
-                group_data = [g for g in group_data if len(g) > 1]
+                # Safely get group data with error handling
+                group_data = []
+                for g in group_names:
+                    try:
+                        group_vals = groups.get_group(g).dropna()
+                        if len(group_vals) > 1:  # Need at least 2 values for statistical test
+                            group_data.append(group_vals)
+                    except KeyError:
+                        # Group doesn't exist, skip
+                        continue
                 
                 if len(group_data) < 2:
                     continue
@@ -119,18 +154,20 @@ class StatisticalEngine:
                 p_val = 1.0
                 stat = 0.0
                 
-                if len(group_names) == 2:
-                    # T-test
-                    stat, p_val = stats.ttest_ind(group_data[0], group_data[1], equal_var=False)
-                    test_name = "t-test"
-                else:
-                    # ANOVA
-                    try:
+                try:
+                    if len(group_data) == 2:
+                        # T-test
+                        if len(group_data[0]) < 2 or len(group_data[1]) < 2:
+                            continue
+                        stat, p_val = stats.ttest_ind(group_data[0], group_data[1], equal_var=False)
+                        test_name = "t-test"
+                    else:
+                        # ANOVA
                         stat, p_val = stats.f_oneway(*group_data)
                         test_name = "anova"
-                    except Exception as e:
-                        self.logger.warning(f"ANOVA failed for {num_col} by {cat_col}: {e}")
-                        continue
+                except (ValueError, RuntimeWarning) as e:
+                    self.logger.warning(f"Statistical test failed for {num_col} by {cat_col}: {e}")
+                    continue
                 
                 if p_val < self.significance_level:
                     # Calculate Cohens d or Eta squared for strength?
@@ -169,14 +206,25 @@ class StatisticalEngine:
                 col2 = categorical_cols[j]
                 
                 contingency_table = pd.crosstab(df[col1], df[col2])
+                
+                # Check if table is valid (at least 2x2 and has sufficient data)
+                if contingency_table.shape[0] < 2 or contingency_table.shape[1] < 2:
+                    continue
+                if contingency_table.sum().sum() < 2:  # Need at least 2 observations
+                    continue
+                
                 try:
                     chi2, p, dof, expected = stats.chi2_contingency(contingency_table)
+                    
+                    # Check for invalid p-value (NaN or inf)
+                    if not np.isfinite(p):
+                        continue
                     
                     if p < self.significance_level:
                         # Cramer's V for strength
                         n_obs = contingency_table.sum().sum()
                         min_dim = min(contingency_table.shape) - 1
-                        cv = np.sqrt(chi2 / (n_obs * min_dim)) if min_dim > 0 else 0
+                        cv = np.sqrt(chi2 / (n_obs * min_dim)) if min_dim > 0 and n_obs > 0 else 0
                         
                         strength = self._categorize_strength(cv)
                         
@@ -191,21 +239,23 @@ class StatisticalEngine:
                                 "direction": "associated", # Chi-square doesn't have direction in simple terms
                                 "type": "categorical_association"
                             })
-                except Exception as e:
+                except (ValueError, RuntimeWarning) as e:
                     self.logger.warning(f"Chi-square failed for {col1} vs {col2}: {e}")
+                    continue
                     
         return associations
 
     def _categorize_strength(self, r_value):
         """
         Categorizes correlation strength.
+        Maps config keys (large/medium/small) to strength labels (strong/moderate/weak).
         """
         abs_r = abs(r_value)
-        if abs_r >= self.thresholds['strong']:
+        if abs_r >= self.thresholds.get('large', 0.8):
             return "strong"
-        elif abs_r >= self.thresholds['moderate']:
+        elif abs_r >= self.thresholds.get('medium', 0.5):
             return "moderate"
-        elif abs_r >= self.thresholds['weak']:
+        elif abs_r >= self.thresholds.get('small', 0.2):
             return "weak"
         else:
             return "negligible"

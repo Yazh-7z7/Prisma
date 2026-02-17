@@ -8,7 +8,14 @@ class HallucinationDetector:
         """
         total_claims = len(validation_results)
         if total_claims == 0:
-            return {"hallucination_rate": 0, "total": 0}
+            return {
+                "total_claims": 0,
+                "valid_claims": 0,
+                "hallucinations": 0,
+                "unverified": 0,
+                "hallucination_rate": 0.0,
+                "insight_validity_score": 0.0
+            }
             
         valid_count = sum(1 for r in validation_results if r['status'] == 'VALID')
         hallucination_count = sum(1 for r in validation_results if 'HALLUCINATION' in r['status'])

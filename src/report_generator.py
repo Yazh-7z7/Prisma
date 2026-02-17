@@ -7,7 +7,10 @@ class ReportGenerator:
     def __init__(self, config):
         self.config = config
         self.logger = logging.getLogger("Prisma.ReportGenerator")
-        self.output_dir = config['reporting']['output_dir']
+        # Use output section from config
+        self.results_dir = config.get('output', {}).get('results_dir', 'results')
+        self.reports_dir = config.get('output', {}).get('reports_dir', 'results/reports')
+        self.metrics_dir = config.get('output', {}).get('metrics_dir', 'results/metrics')
 
     def generate_reports(self, validation_results, metrics, dataset_name, model_name):
         """
@@ -23,8 +26,11 @@ class ReportGenerator:
         base_filename = f"{dataset_name}_{timestamp_file}"
         
         # Ensure output directories exist
-        json_path = os.path.join(self.output_dir, "metrics", f"{base_filename}.json")
-        md_path = os.path.join(self.output_dir, "reports", f"{base_filename}.md")
+        os.makedirs(self.metrics_dir, exist_ok=True)
+        os.makedirs(self.reports_dir, exist_ok=True)
+        
+        json_path = os.path.join(self.metrics_dir, f"{base_filename}.json")
+        md_path = os.path.join(self.reports_dir, f"{base_filename}.md")
         
         # Prepare full results object
         full_results = {

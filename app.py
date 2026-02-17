@@ -152,17 +152,19 @@ if run_btn and st.session_state.data is not None:
             llm_gen = LLMGenerator(config)
             # Verify keys are set if needed
             if st.session_state.provider != 'ollama':
-                # Temporary override for this instance
+                # Update API keys if provided in session
                 if st.session_state.provider == 'anthropic':
-                    if not config.get('llm', {}).get('api_keys', {}).get('anthropic'):
+                    anthropic_key = config.get('llm', {}).get('api_keys', {}).get('anthropic')
+                    if not anthropic_key:
                         st.error("❌ Anthropic API key not set. Please add it in the sidebar.")
                         st.stop()
-                    llm_gen.anthropic_key = config['llm']['api_keys']['anthropic']
+                    llm_gen.update_api_key('anthropic', anthropic_key)
                 elif st.session_state.provider == 'openai':
-                    if not config.get('llm', {}).get('api_keys', {}).get('openai'):
+                    openai_key = config.get('llm', {}).get('api_keys', {}).get('openai')
+                    if not openai_key:
                         st.error("❌ OpenAI API key not set. Please add it in the sidebar.")
                         st.stop()
-                    llm_gen.openai_key = config['llm']['api_keys']['openai']
+                    llm_gen.update_api_key('openai', openai_key)
 
             # Convert ground truth to string for the prompt
             import json
