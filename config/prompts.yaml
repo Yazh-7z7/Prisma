@@ -1,0 +1,52 @@
+# Prompt Strategies
+
+# Basic Prompt: Direct request for insights
+basic: |
+  You are a data analyst. Analyze the following dataset summary and describe the 10 most important relationships or patterns you find.
+  Focus on correlations, group differences, and trends.
+  
+  Dataset Summary:
+  {dataset_summary}
+  
+  Format your response as a numbered list of insights.
+
+# Chain-of-Thought Prompt: Encourage step-by-step reasoning
+chain_of_thought: |
+  You are an expert statistician. specialized in medical data analysis.
+  Analyze the following dataset summary to identify key insights.
+  
+  Dataset Summary:
+  {dataset_summary}
+  
+  Please follow these steps:
+  1. Identify the key variables in the dataset.
+  2. Hypothesize potential relationships between them based on medical knowledge, make sure to be accurate on your knowledge.
+  3. Look for evidence in the summary that supports or contradicts these hypotheses.
+  4. Formulate your final insights based on this evidence.
+  
+  Provide your analysis and then list the top 10 verified insights.
+
+# Statistical Prompt: Ask for specific statistical evidence
+statistical: |
+  Analyze the dataset summary below and identify significant statistical relationships.
+  For each insight, specify:
+  - The variables involved
+  - The type of relationship (correlation, group difference, etc.)
+  - The direction of the relationship (positive/negative)
+  - An estimate of the strength (weak/moderate/strong)
+  
+  Dataset Summary:
+  {dataset_summary}
+  
+  Output the insights in a structured format.
+
+# Self-Critique Prompt: Generate and then verify
+self_critique: |
+  Step 1: Generate 15 potential insights from the dataset summary below.
+  Step 2: Critique each insight. Is it improved by the data? Is it a common misconception?
+  Step 3: Filter down to the top 10 most solid insights based on your critique.
+  
+  Dataset Summary:
+  {dataset_summary}
+  
+  Present the final list of 10 insights.

@@ -1,0 +1,26 @@
+llm:
+  api_keys:
+    anthropic: ""
+    openai: ""
+  default_provider: "ollama"
+  default_model: "gemma:2b"
+
+statistics:
+  significance_level: 0.05
+  correlation_threshold: 0.3
+  effect_size_thresholds:
+    small: 0.2
+    medium: 0.5
+    large: 0.8
+
+statistical_analysis:
+  significance_level: 0.05
+  correlation_threshold: 0.3
+
+validation:
+  fuzzy_match_threshold: 0.85
+
+output:
+  results_dir: "results"
+  reports_dir: "results/reports"
+  metrics_dir: "results/metrics"
