@@ -1,0 +1,218 @@
+{
+    "metadata": {
+        "dataset": "healthcare_dataset_stroke_data.csv",
+        "model": "gemma3",
+        "timestamp": "20260215_184656"
+    },
+    "metrics": {
+        "total_claims": 10,
+        "valid_claims": 4,
+        "hallucinations": 1,
+        "unverified": 5,
+        "hallucination_rate": 0.1,
+        "insight_validity_score": 0.4
+    },
+    "validation_details": [
+        {
+            "claim": {
+                "original_text": "**Positive Correlation between Age and Cholesterol:** The summary shows a clear trend: as age increases, so does cholesterol level. The 75th percentile of age (58.75) corresponds with the highest cholesterol level (247.5), suggesting an age-related increase in cholesterol.",
+                "variables": [],
+                "relationship": "correlation",
+                "direction": "positive",
+                "strength": "unknown"
+            },
+            "extracted_vars": [
+                "age",
+                "cholesterol"
+            ],
+            "status": "VALID",
+            "reason": "Relationship confirmed by statistics",
+            "ground_truth": {
+                "var1": "age",
+                "var2": "cholesterol",
+                "pearson": {
+                    "r": 0.9999999999999998,
+                    "p": 1.0635035875250968e-62
+                },
+                "spearman": {
+                    "r": 0.9999999999999999,
+                    "p": 6.646897422032013e-64
+                },
+                "strength": "strong",
+                "direction": "positive"
+            }
+        },
+        {
+            "claim": {
+                "original_text": "**Positive Correlation between Income and Cholesterol:** Similar to age, higher income is associated with higher cholesterol levels. This indicates a potential link between socioeconomic status and cardiovascular risk factors, although it's a very preliminary observation.",
+                "variables": [],
+                "relationship": "correlation",
+                "direction": "positive",
+                "strength": "unknown"
+            },
+            "extracted_vars": [
+                "age",
+                "cholesterol",
+                "income"
+            ],
+            "status": "VALID",
+            "reason": "Relationship confirmed by statistics",
+            "ground_truth": {
+                "var1": "age",
+                "var2": "cholesterol",
+                "pearson": {
+                    "r": 0.9999999999999998,
+                    "p": 1.0635035875250968e-62
+                },
+                "spearman": {
+                    "r": 0.9999999999999999,
+                    "p": 6.646897422032013e-64
+                },
+                "strength": "strong",
+                "direction": "positive"
+            }
+        },
+        {
+            "claim": {
+                "original_text": "**Positive Correlation between Income and Random (Likely Blood Pressure):** The summary indicates that as income increases, the \"random\" value also increases. Assuming \"random\" represents a measure of blood pressure (a common use of the term in this context), this demonstrates a positive correlation between income and blood pressure.  Higher earners generally have higher blood pressure.",
+                "variables": [],
+                "relationship": "correlation",
+                "direction": "positive",
+                "strength": "unknown"
+            },
+            "extracted_vars": [
+                "income",
+                "random"
+            ],
+            "status": "HALLUCINATION_RELATIONSHIP",
+            "reason": "No statistical relationship found between income and random"
+        },
+        {
+            "claim": {
+                "original_text": "**Central Tendency - Age Around 47.5:** The mean age of 47.5 suggests a cohort primarily in their late 40s, indicating the sample likely represents individuals within this age range.",
+                "variables": [],
+                "relationship": "correlation",
+                "direction": "unknown",
+                "strength": "unknown"
+            },
+            "extracted_vars": [
+                "age"
+            ],
+            "status": "UNVERIFIED",
+            "reason": "Not enough variables found"
+        },
+        {
+            "claim": {
+                "original_text": "**Cholesterol Around 225:** The mean cholesterol level of 225 is also a key central tendency value. This provides a benchmark for the overall cholesterol levels within the dataset.",
+                "variables": [],
+                "relationship": "correlation",
+                "direction": "unknown",
+                "strength": "unknown"
+            },
+            "extracted_vars": [
+                "cholesterol"
+            ],
+            "status": "UNVERIFIED",
+            "reason": "Not enough variables found"
+        },
+        {
+            "claim": {
+                "original_text": "**Income Around $53,000:** The average income of $53,000 is another important summary statistic. This represents the median income within this small group.",
+                "variables": [],
+                "relationship": "correlation",
+                "direction": "unknown",
+                "strength": "unknown"
+            },
+            "extracted_vars": [
+                "age",
+                "income"
+            ],
+            "status": "VALID",
+            "reason": "Relationship confirmed by statistics",
+            "ground_truth": {
+                "var1": "age",
+                "var2": "income",
+                "pearson": {
+                    "r": 0.9045340337332908,
+                    "p": 0.0003233932218851502
+                },
+                "spearman": {
+                    "r": 0.9052368735483408,
+                    "p": 0.0003142487865829311
+                },
+                "strength": "strong",
+                "direction": "positive"
+            }
+        },
+        {
+            "claim": {
+                "original_text": "**Moderate Variability in All Variables:** The standard deviations (15.14 for age, 30.28 for cholesterol, and 1825.74 for income) indicate a moderate amount of variability within the dataset. This means there\u2019s a significant spread around the mean for each variable, which is expected.",
+                "variables": [],
+                "relationship": "correlation",
+                "direction": "unknown",
+                "strength": "strong"
+            },
+            "extracted_vars": [
+                "age",
+                "cholesterol",
+                "income"
+            ],
+            "status": "VALID",
+            "reason": "Relationship confirmed by statistics",
+            "ground_truth": {
+                "var1": "age",
+                "var2": "cholesterol",
+                "pearson": {
+                    "r": 0.9999999999999998,
+                    "p": 1.0635035875250968e-62
+                },
+                "spearman": {
+                    "r": 0.9999999999999999,
+                    "p": 6.646897422032013e-64
+                },
+                "strength": "strong",
+                "direction": "positive"
+            }
+        },
+        {
+            "claim": {
+                "original_text": "**Potential Group Differences (Age Quartiles):** The 25%, 50%, and 75% percentiles for age reveal a widening gap as age increases. This suggests a possible trend of older individuals having higher ages within this group.",
+                "variables": [],
+                "relationship": "correlation",
+                "direction": "unknown",
+                "strength": "unknown"
+            },
+            "extracted_vars": [
+                "age"
+            ],
+            "status": "UNVERIFIED",
+            "reason": "Not enough variables found"
+        },
+        {
+            "claim": {
+                "original_text": "**Narrow Range in \"Random\" Variable:** The range of \"random\" values (0.00 to 9.00) is quite small.  This may indicate issues with the measurement scale or the data itself, or that the variable isn't truly capturing much variation.",
+                "variables": [],
+                "relationship": "correlation",
+                "direction": "unknown",
+                "strength": "unknown"
+            },
+            "extracted_vars": [
+                "random"
+            ],
+            "status": "UNVERIFIED",
+            "reason": "Not enough variables found"
+        },
+        {
+            "claim": {
+                "original_text": "**Limited Statistical Significance:**  Because of the extremely small sample size (n=10), any conclusions drawn from these correlations are highly preliminary and lack statistical significance.  Further investigation with a larger and more diverse dataset is absolutely essential before drawing any firm conclusions.",
+                "variables": [],
+                "relationship": "correlation",
+                "direction": "unknown",
+                "strength": "unknown"
+            },
+            "extracted_vars": [],
+            "status": "UNVERIFIED",
+            "reason": "Not enough variables found"
+        }
+    ]
+}
