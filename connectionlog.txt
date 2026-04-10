@@ -1,0 +1,144 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                   PRISMA — CONNECTION LOG & ENDPOINT REGISTRY               ║
+║                   Single source of truth for all API connections            ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Last updated : 2026-04-10
+Backend file : backend/api_server.py
+Frontend file: frontend/src/lib/api.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ENVIRONMENT VARIABLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Backend (.env or Railway vars):
+  OPENAI_API_KEY       = <your-openai-key>
+  ANTHROPIC_API_KEY    = <your-anthropic-key>
+  DEFAULT_LLM_PROVIDER = ollama          (fallback if no keys set)
+  FRONTEND_URL         = https://prisma-app.vercel.app   (CORS origin)
+  PORT                 = 8000
+
+Frontend (.env.local or Vercel vars):
+  NEXT_PUBLIC_API_URL  = http://localhost:8000   (local dev)
+  NEXT_PUBLIC_API_URL  = https://prisma-api.railway.app   (production)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+API ENDPOINTS  (base URL = NEXT_PUBLIC_API_URL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌────────────────────────────────────┬────────┬────────────────────────────────┐
+│ Path                               │ Method │ Description                    │
+├────────────────────────────────────┼────────┼────────────────────────────────┤
+│ /                                  │ GET    │ Health check (returns status)  │
+│ /health                            │ GET    │ Alias health check             │
+│ /upload                            │ POST   │ Upload CSV/XLSX → session_id   │
+│ /analyze                           │ POST   │ Run full pipeline, get results │
+│ /results?session_id=<id>           │ GET    │ Fetch cached session results   │
+│ /docs                              │ GET    │ FastAPI Swagger UI (dev only)  │
+│ /redoc                             │ GET    │ FastAPI ReDoc UI   (dev only)  │
+└────────────────────────────────────┴────────┴────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ENDPOINT DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+POST /upload
+  Content-Type : multipart/form-data
+  Body field   : file  (binary, .csv or .xlsx)
+  Success 200  : { session_id: string, metadata: DatasetMetadata }
+  Error   422  : DataIngestionError (bad file / unsupported type)
+  Error   500  : Unexpected server error
+
+POST /analyze
+  Content-Type : application/json
+  Body schema  :
+    {
+      "session_id"     : "<uuid>",          // required — from /upload
+      "model_provider" : "ollama",          // "ollama" | "openai" | "anthropic"
+      "model_name"     : "gemma:2b",        // optional; provider default if omitted
+      "use_csvl"       : true,              // closed-loop self-validation toggle
+      "num_insights"   : 10,               // 1–30
+      "openai_key"     : null,             // optional runtime key
+      "anthropic_key"  : null              // optional runtime key
+    }
+  Success 200  : AnalyzeResponse (metrics + validation_results + ground_truth)
+  Error   404  : session not found
+  Error   500  : pipeline failure (LLM error, etc.)
+
+GET /results?session_id=<uuid>
+  Success 200  : { status: "complete" | "uploaded" | "error", ...AnalyzeResponse }
+  Error   404  : session not found
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INTERNAL SERVICE REGISTRY  (backend module → imported function/class)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  backend/api_server.py
+    → data_ingestion.ingest_file()          POST /upload step 1
+    → stat_engine.analyze()                 POST /analyze step 1
+    → csvl_engine.run_csvl_pipeline()       POST /analyze step 2 (CSVL=true)
+    → llm_client.LLMClient.generate()      POST /analyze step 2 (CSVL=false)
+    → parser.parse_insights()              POST /analyze step 3
+    → validator.validate_claims()          POST /analyze step 4
+    → reporting.compute_metrics()          POST /analyze step 5
+    → reporting.generate_report()          POST /analyze step 5 (writes files)
+
+  backend/llm_client.py
+    → OllamaClient    (provider="ollama")
+    → OpenAIClient    (provider="openai")
+    → AnthropicClient (provider="anthropic")
+
+  src/  (Streamlit app — unchanged)
+    → src/statistical_engine.py  (Streamlit-side stats)
+    → src/llm_generator.py       (Streamlit-side LLM)
+    → src/csvl_engine.py         (Streamlit-side CSVL)
+    → src/validator.py           (Streamlit-side validator)
+    → src/insight_parser.py      (Streamlit-side parser)
+    → src/hallucination_detector.py
+    → src/report_generator.py
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEPLOYMENT TARGETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Frontend  → Vercel
+    Build command  : npm run build
+    Output dir     : .next
+    Root dir       : frontend/
+    Framework      : Next.js
+
+  Backend   → Railway
+    Start command  : uvicorn backend.api_server:app --host 0.0.0.0 --port $PORT
+    Root dir       : ./  (project root)
+    Healthcheck    : GET /health
+    Environment    : Set env vars via Railway dashboard
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LOCAL DEV QUICK-START
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # 1. Python env
+  pip install -r requirements.txt
+
+  # 2. Start FastAPI
+  uvicorn backend.api_server:app --reload --port 8000
+
+  # 3. Start Next.js  (install Node first if absent)
+  cd frontend && npm install && npm run dev
+
+  # 4. Run Streamlit (optional legacy UI)
+  streamlit run app.py
+
+  # 5. Ollama (local LLM)
+  ollama serve
+  ollama pull gemma:2b
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CORS WHITELIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  http://localhost:3000          (Next.js local dev)
+  https://*.vercel.app           (Vercel preview + production deployments)
+  $FRONTEND_URL                  (explicit prod URL from Railway env var)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
