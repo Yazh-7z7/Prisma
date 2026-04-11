@@ -1,10 +1,10 @@
 "use client";
 
+import React from "react";
 import { usePrismaStore } from "@/store/prismaStore";
 import { motion } from "framer-motion";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  BoxPlot, ComposedChart, YAxis, XAxis, CartesianGrid,
 } from "recharts";
 
 // ── Colour map ────────────────────────────────────────────────────────────
@@ -32,14 +32,6 @@ const STATUS_LABELS: Record<string, string> = {
 export function Dashboard() {
   const { phase, metrics, validationResults, metadata, fileName } = usePrismaStore();
 
-  if (phase === "idle" || phase === "uploaded") {
-    return <LandingHero />;
-  }
-
-  if (phase === "analyzing") {
-    return <Loader />;
-  }
-
   if (!metrics) return null;
 
   const pieData = Object.entries(metrics.taxonomy_distribution)
@@ -51,15 +43,15 @@ export function Dashboard() {
     validationResults.reduce<Record<string, number[]>>((acc, vr) => {
       const s = vr.status;
       if (!acc[s]) acc[s] = [];
-      acc[s].push(vr.claim.confidence_score);
+      acc[s].push(vr.claim?.confidence_score ?? 0);
       return acc;
     }, {})
   ).map(([name, vals]) => {
     const sorted = [...vals].sort((a, b) => a - b);
-    const q1 = sorted[Math.floor(sorted.length * 0.25)];
-    const q3 = sorted[Math.floor(sorted.length * 0.75)];
-    const med = sorted[Math.floor(sorted.length * 0.5)];
-    return { name: STATUS_LABELS[name] ?? name, min: sorted[0], max: sorted[sorted.length - 1], q1, q3, med };
+    const q1 = sorted[Math.floor(sorted.length * 0.25)] ?? 0;
+    const q3 = sorted[Math.floor(sorted.length * 0.75)] ?? 0;
+    const med = sorted[Math.floor(sorted.length * 0.5)] ?? 0;
+    return { name: STATUS_LABELS[name] ?? name, rawName: name, min: sorted[0] ?? 0, max: sorted[sorted.length - 1] ?? 0, q1, q3, med };
   });
 
   return (
@@ -80,9 +72,9 @@ export function Dashboard() {
           { label: "Total Claims", value: metrics.total_claims, color: "var(--text-primary)" },
           { label: "Valid Claims", value: metrics.valid_claims, color: "#22c55e" },
           { label: "Hallucinations", value: metrics.hallucination_count, color: "#ef4444" },
-          { label: "Hallucination Rate", value: `${metrics.hallucination_rate}%`, color: "#f97316" },
-          { label: "Validity Score", value: `${metrics.validity_score}%`, color: "#22c55e" },
-          { label: "Avg Confidence", value: metrics.avg_confidence.toFixed(2), color: "var(--brand-light)" },
+          { label: "Hallucination Rate", value: `${metrics.hallucination_rate ?? 0}%`, color: "#f97316" },
+          { label: "Validity Score", value: `${metrics.validity_score ?? 0}%`, color: "#22c55e" },
+          { label: "Avg Confidence", value: (metrics.avg_confidence ?? 0).toFixed(2), color: "var(--brand-light)" },
         ].map((m, i) => (
           <motion.div
             key={m.label}
@@ -130,7 +122,7 @@ export function Dashboard() {
               </Pie>
               <Tooltip
                 contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8 }}
-                formatter={(v: number, _: string, p: { payload: { label: string } }) => [v, p.payload.label]}
+                formatter={(v: any, _: any, p: any) => [v, p.payload.label]}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -158,7 +150,6 @@ export function Dashboard() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {boxData.map((d) => {
               const pct = Math.round(d.med * 100);
-              const color = Object.entries(STATUS_LABELS).find(([, v]) => v === d.name)?.[0];
               return (
                 <div key={d.name}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", marginBottom: 3 }}>
@@ -167,7 +158,7 @@ export function Dashboard() {
                   </div>
                   <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)" }}>
                     <motion.div
-                      style={{ height: "100%", borderRadius: 3, background: STATUS_COLORS[color ?? ""] ?? "var(--brand)" }}
+                      style={{ height: "100%", borderRadius: 3, background: STATUS_COLORS[d.rawName] ?? "var(--brand)" }}
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
                       transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" }}
@@ -212,13 +203,13 @@ export function Dashboard() {
                 >
                   <td style={{ padding: "8px 10px", color: "var(--text-muted)" }}>{i + 1}</td>
                   <td style={{ padding: "8px 10px", maxWidth: 420, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {vr.claim.original_text}
+                    {vr.claim?.original_text ?? ""}
                   </td>
                   <td style={{ padding: "8px 10px" }}>
                     <StatusBadge status={vr.status} />
                   </td>
                   <td style={{ padding: "8px 10px", color: "var(--brand-light)", fontWeight: 600 }}>
-                    {vr.claim.confidence_score.toFixed(2)}
+                    {(vr.claim?.confidence_score ?? 0).toFixed(2)}
                   </td>
                 </tr>
               ))}
@@ -230,113 +221,12 @@ export function Dashboard() {
   );
 }
 
-// ── Landing hero ───────────────────────────────────────────────────────────
 
-function LandingHero() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "80vh",
-        textAlign: "center",
-        gap: "1.5rem",
-      }}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div
-          style={{
-            fontSize: "5rem",
-            fontWeight: 900,
-            letterSpacing: "-3px",
-            lineHeight: 1,
-          }}
-          className="gradient-text"
-        >
-          PRISMA
-        </div>
-        <div style={{ fontSize: "1.1rem", color: "var(--text-secondary)", marginTop: "0.8rem", maxWidth: 440 }}>
-          Hallucination-aware insight generation with a<br />
-          <strong style={{ color: "var(--brand-light)" }}>Closed-Loop Self-Validating LLM</strong> pipeline.
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        style={{
-          display: "flex",
-          gap: "1rem",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          marginTop: "1rem",
-        }}
-      >
-        {["Upload CSV/XLSX", "Statistical Ground Truth", "CSVL Pipeline", "5-Category Taxonomy"].map((step) => (
-          <div
-            key={step}
-            style={{
-              padding: "0.5rem 1.1rem",
-              border: "1px solid var(--border-strong)",
-              borderRadius: 99,
-              fontSize: "0.8rem",
-              color: "var(--text-secondary)",
-            }}
-          >
-            {step}
-          </div>
-        ))}
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.55 }}
-        style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginTop: "0.5rem" }}
-      >
-        ← Upload a dataset from the sidebar to get started
-      </motion.div>
-    </div>
-  );
-}
-
-// ── Loader ────────────────────────────────────────────────────────────────
-
-function Loader() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh", gap: "1.5rem" }}>
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          border: "3px solid var(--border)",
-          borderTopColor: "var(--brand)",
-        }}
-      />
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: 4 }}>Running Prisma Pipeline</div>
-        <div style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>
-          Generating → Critiquing → Refining → Validating…
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Status badge ──────────────────────────────────────────────────────────
 
 export function StatusBadge({ status }: { status: string }) {
-  const color = STATUS_COLORS[status] ?? "#888";
+  const color = STATUS_COLORS[status] ?? "#888888";
   return (
     <span
       className="badge"

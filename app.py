@@ -232,13 +232,13 @@ with tab_dashboard:
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            render_metric_card("Hallucination Rate", f"{metrics.get('hallucination_rate', 0):.1f}%")
+            render_metric_card("Hallucination Rate", f"{metrics.get('hallucination_rate', 0) * 100:.1f}%")
         with col2:
-            render_metric_card("Validity Score", f"{metrics.get('validity_score', 0):.1f}%")
+            render_metric_card("Validity Score", f"{metrics.get('insight_validity_score', 0) * 100:.1f}%")
         with col3:
             render_metric_card("Total Claims", metrics.get('total_claims', 0))
         with col4:
-            render_metric_card("Verified Claims", metrics.get('verified_claims', 0))
+            render_metric_card("Valid Claims", metrics.get('valid_claims', 0))
             
         st.markdown("### Recent Activity")
         st.info("Analysis run successfully. Check other tabs for details.")

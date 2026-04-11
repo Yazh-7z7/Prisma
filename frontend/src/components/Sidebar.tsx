@@ -1,98 +1,44 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
-import { motion } from "framer-motion";
+import React from "react";
 import { usePrismaStore } from "@/store/prismaStore";
-import { api } from "@/lib/api";
 
-// ── Nav items ─────────────────────────────────────────────────────────────
+const Icons = {
+  dashboard: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+  ),
+  insights: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+  ),
+  validation: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  ),
+  groundTruth: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+  )
+};
 
 const NAV = [
-  { id: "dashboard",    label: "Dashboard",     icon: "⬡" },
-  { id: "insights",     label: "Insights",      icon: "💡" },
-  { id: "validation",   label: "Validation",    icon: "✦" },
-  { id: "ground-truth", label: "Ground Truth",  icon: "◈" },
+  { id: "dashboard",    label: "Dashboard",     icon: Icons.dashboard },
+  { id: "insights",     label: "Insights",      icon: Icons.insights },
+  { id: "validation",   label: "Validation",    icon: Icons.validation },
+  { id: "ground-truth", label: "Ground Truth",  icon: Icons.groundTruth },
 ] as const;
 
-// ── Sidebar ───────────────────────────────────────────────────────────────
-
 export function Sidebar() {
-  const {
-    phase, error,
-    fileName, metadata,
-    modelProvider, modelName,
-    useCsvl, numInsights,
-    openaiKey, anthropicKey,
-    activeTab,
-    sessionId,
-    setUploadResult, setAnalyzing, setAnalyzeResult, setError,
-    setModelProvider, setModelName, setUseCsvl, setNumInsights,
-    setOpenaiKey, setAnthropicKey, setActiveTab, reset,
-  } = usePrismaStore();
-
-  const [uploading, setUploading] = useState(false);
-
-  // ── Drop zone ──────────────────────────────────────────────────────────
-  const onDrop = useCallback(
-    async (accepted: File[]) => {
-      if (!accepted.length) return;
-      const file = accepted[0];
-      setUploading(true);
-      try {
-        const res = await api.upload(file);
-        setUploadResult(res, file.name);
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Upload failed.");
-      } finally {
-        setUploading(false);
-      }
-    },
-    [setUploadResult, setError]
-  );
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { "text/csv": [".csv"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] },
-    maxFiles: 1,
-    disabled: uploading,
-  });
-
-  // ── Run analysis ───────────────────────────────────────────────────────
-  const handleRun = async () => {
-    if (!sessionId) return;
-    setAnalyzing();
-    try {
-      const res = await api.analyze({
-        session_id: sessionId,
-        model_provider: modelProvider,
-        model_name: modelName || undefined,
-        use_csvl: useCsvl,
-        num_insights: numInsights,
-        openai_key: openaiKey || undefined,
-        anthropic_key: anthropicKey || undefined,
-      });
-      setAnalyzeResult(res);
-      setActiveTab("dashboard");
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Analysis failed.");
-    }
-  };
-
-  const canRun = (phase === "uploaded" || phase === "complete") && !uploading;
-  const isAnalyzing = phase === "analyzing";
+  const { activeTab, setActiveTab, reset } = usePrismaStore();
 
   return (
     <aside
       style={{
-        width: 280,
+        width: 260,
         minHeight: "100vh",
         background: "var(--bg-layer)",
         borderRight: "1px solid var(--border)",
         display: "flex",
         flexDirection: "column",
-        padding: "1.5rem 1.25rem",
-        gap: "1.5rem",
+        padding: "2rem 1.5rem",
+        gap: "2rem",
         position: "sticky",
         top: 0,
         height: "100vh",
@@ -100,27 +46,24 @@ export function Sidebar() {
       }}
     >
       {/* Logo */}
-      <div>
+      <div style={{ paddingLeft: "0.5rem" }}>
         <div
           style={{
-            fontSize: "1.7rem",
-            fontWeight: 900,
+            fontSize: "1.75rem",
+            fontWeight: 800,
             letterSpacing: "-1px",
-            background: "linear-gradient(135deg,#fff 0%,#a78bfa 60%,#7c5cfc 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
+            color: "var(--brand)",
           }}
         >
           PRISMA
         </div>
-        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: 2 }}>
-          Hallucination-Aware AI Insights
+        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2, fontWeight: 500 }}>
+          Hallucination-Aware AI
         </div>
       </div>
 
       {/* Nav */}
-      <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <nav style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
         {NAV.map((item) => {
           const active = activeTab === item.id;
           return (
@@ -130,244 +73,40 @@ export function Sidebar() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "0.65rem",
-                padding: "0.6rem 0.9rem",
+                gap: "0.75rem",
+                padding: "0.75rem 1rem",
                 borderRadius: "var(--radius-sm)",
                 border: "none",
-                background: active ? "rgba(124,92,252,0.15)" : "transparent",
-                color: active ? "var(--brand-light)" : "var(--text-secondary)",
-                fontWeight: active ? 600 : 400,
-                fontSize: "0.875rem",
+                background: active ? "var(--bg-card-hover)" : "transparent",
+                color: active ? "var(--brand)" : "var(--text-secondary)",
+                fontWeight: active ? 600 : 500,
+                fontSize: "0.9rem",
                 cursor: "pointer",
                 width: "100%",
                 textAlign: "left",
-                transition: "background 0.15s, color 0.15s",
+                transition: "all 0.2s ease",
               }}
             >
-              <span style={{ fontSize: "1rem" }}>{item.icon}</span>
+              <div style={{ display: "flex", color: active ? "var(--brand)" : "currentcolor" }}>
+                {item.icon}
+              </div>
               {item.label}
-              {active && (
-                <span style={{ marginLeft: "auto", width: 4, height: 4, borderRadius: "50%", background: "var(--brand)" }} />
-              )}
             </button>
-          );
+           );
         })}
       </nav>
 
       <div style={{ height: 1, background: "var(--border)" }} />
 
-      {/* Upload zone */}
-      <div>
-        <Label>Dataset</Label>
-        <div
-          {...getRootProps()}
-          style={{
-            border: `1px dashed ${isDragActive ? "var(--brand)" : "var(--border-strong)"}`,
-            borderRadius: "var(--radius-md)",
-            padding: "1.2rem",
-            textAlign: "center",
-            cursor: "pointer",
-            background: isDragActive ? "rgba(124,92,252,0.07)" : "transparent",
-            transition: "all 0.2s",
-            marginTop: 6,
-          }}
-        >
-          <input {...getInputProps()} />
-          {uploading ? (
-            <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>Uploading…</span>
-          ) : fileName ? (
-            <span style={{ color: "var(--brand-light)", fontSize: "0.8rem", fontWeight: 600 }}>
-              ✓ {fileName}
-            </span>
-          ) : (
-            <span style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>
-              Drop CSV / XLSX or click
-            </span>
-          )}
-        </div>
-        {metadata && (
-          <div style={{ marginTop: 6, fontSize: "0.72rem", color: "var(--text-muted)" }}>
-            {metadata.rows.toLocaleString()} rows · {metadata.columns} cols
-          </div>
-        )}
-      </div>
-
-      {/* Model config */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <Label>LLM Provider</Label>
-        <select
-          className="input"
-          value={modelProvider}
-          onChange={(e) => setModelProvider(e.target.value as typeof modelProvider)}
-        >
-          <option value="ollama">Ollama (Local)</option>
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
-        </select>
-
-        <Label>Model Name</Label>
-        <input
-          className="input"
-          value={modelName}
-          onChange={(e) => setModelName(e.target.value)}
-          placeholder={
-            modelProvider === "ollama"
-              ? "gemma:2b"
-              : modelProvider === "openai"
-              ? "gpt-4-turbo"
-              : "claude-3-sonnet-20240229"
-          }
-        />
-
-        {modelProvider === "openai" && (
-          <>
-            <Label>OpenAI API Key</Label>
-            <input
-              className="input"
-              type="password"
-              value={openaiKey}
-              onChange={(e) => setOpenaiKey(e.target.value)}
-              placeholder="sk-..."
-            />
-          </>
-        )}
-        {modelProvider === "anthropic" && (
-          <>
-            <Label>Anthropic API Key</Label>
-            <input
-              className="input"
-              type="password"
-              value={anthropicKey}
-              onChange={(e) => setAnthropicKey(e.target.value)}
-              placeholder="sk-ant-..."
-            />
-          </>
-        )}
-      </div>
-
-      {/* Settings */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <Label style={{ marginBottom: 0 }}>CSVL Mode</Label>
-            <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 1 }}>
-              Self-Validating Loop
-            </div>
-          </div>
-          <Toggle value={useCsvl} onChange={setUseCsvl} />
-        </div>
-
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <Label style={{ marginBottom: 0 }}>Insights</Label>
-            <span style={{ fontSize: "0.78rem", color: "var(--brand-light)", fontWeight: 600 }}>
-              {numInsights}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={5}
-            max={20}
-            value={numInsights}
-            onChange={(e) => setNumInsights(Number(e.target.value))}
-            style={{ width: "100%", marginTop: 6, accentColor: "var(--brand)" }}
-          />
-        </div>
-      </div>
-
-      <div style={{ height: 1, background: "var(--border)" }} />
-
-      {/* Error */}
-      {error && (
-        <div style={{
-          background: "rgba(239,68,68,0.12)",
-          border: "1px solid rgba(239,68,68,0.3)",
-          borderRadius: "var(--radius-sm)",
-          padding: "0.6rem 0.8rem",
-          fontSize: "0.75rem",
-          color: "#fca5a5",
-        }}>
-          {error}
-        </div>
-      )}
-
-      {/* Run button */}
-      <button
-        className="btn-primary"
-        disabled={!canRun || isAnalyzing}
-        onClick={handleRun}
-        style={{ width: "100%", justifyContent: "center" }}
-      >
-        {isAnalyzing ? (
-          <>
-            <span className="animate-spin" style={{ display: "inline-block" }}>⟳</span>
-            Analyzing…
-          </>
-        ) : (
-          <>▶  Run Analysis</>
-        )}
+      <button className="btn-ghost" onClick={reset} style={{ width: "100%", justifyContent: "center" }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        New Dataset
       </button>
 
-      {phase !== "idle" && (
-        <button className="btn-ghost" onClick={reset} style={{ width: "100%", justifyContent: "center" }}>
-          Reset
-        </button>
-      )}
-
       {/* Footer */}
-      <div style={{ marginTop: "auto", fontSize: "0.65rem", color: "var(--text-muted)", textAlign: "center" }}>
-        Prisma v1.0 · Hallucination-Aware AI
+      <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textAlign: "center" }}>
+        Prisma v1.0
       </div>
     </aside>
-  );
-}
-
-// ── Sub-components ─────────────────────────────────────────────────────────
-
-function Label({
-  children,
-  style,
-}: {
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <div
-      style={{
-        fontSize: "0.72rem",
-        fontWeight: 600,
-        letterSpacing: "0.05em",
-        textTransform: "uppercase",
-        color: "var(--text-muted)",
-        marginBottom: 4,
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Toggle({
-  value,
-  onChange,
-}: {
-  value: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <button
-      className="toggle-track"
-      onClick={() => onChange(!value)}
-      style={{ background: value ? "var(--brand)" : "#2a2a44" }}
-      aria-pressed={value}
-      aria-label="Toggle CSVL mode"
-    >
-      <motion.div
-        className="toggle-thumb"
-        animate={{ x: value ? 20 : 0 }}
-        transition={{ type: "spring", stiffness: 600, damping: 30 }}
-      />
-    </button>
   );
 }

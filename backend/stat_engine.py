@@ -42,33 +42,38 @@ DEFAULT_CONFIG = {
 # Public entry point
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# DataFrame cache: keyed by hash string to avoid lru_cache unhashable errors
+# ---------------------------------------------------------------------------
+_DF_CACHE: dict[str, pd.DataFrame] = {}
+
+
 def analyze(df: pd.DataFrame, config: dict | None = None) -> dict[str, Any]:
     """
     Run the full statistical pipeline on *df* and return a ground-truth dict.
 
     The hash key ensures we never recompute identical frames.
+    lru_cache cannot receive a DataFrame directly (not hashable), so we store
+    it in a module-level dict keyed by its content hash.
     """
     cfg = config or DEFAULT_CONFIG
     cache_key = _df_hash(df)
-    return _cached_analyze(cache_key, df, cfg)
+    cfg_json = json.dumps(cfg, sort_keys=True)
+    # Stash df so the lru_cache function can retrieve it by hash
+    _DF_CACHE[cache_key] = df
+    return _cached_analyze(cache_key, cfg_json)
 
 
 # ---------------------------------------------------------------------------
-# Cached core (keyed by hash so same DataFrame is never recomputed)
+# Cached core: receives only hashable primitives
 # ---------------------------------------------------------------------------
 
 @lru_cache(maxsize=16)
-def _cached_analyze(cache_key: str, df: pd.DataFrame, cfg_json: str) -> dict[str, Any]:  # type: ignore[misc]
-    cfg = json.loads(cfg_json) if isinstance(cfg_json, str) else cfg_json
+def _cached_analyze(cache_key: str, cfg_json: str) -> dict[str, Any]:
+    """LRU-cached inner function.  Retrieves the DataFrame via the module dict."""
+    df = _DF_CACHE[cache_key]
+    cfg = json.loads(cfg_json)
     return _run_analysis(df, cfg)
-
-
-def analyze(df: pd.DataFrame, config: dict | None = None) -> dict[str, Any]:  # noqa: F811
-    """Public wrapper that serialises config before calling the LRU cache."""
-    cfg = config or DEFAULT_CONFIG
-    cache_key = _df_hash(df)
-    cfg_json = json.dumps(cfg, sort_keys=True)
-    return _cached_analyze(cache_key, df, cfg_json)
 
 
 # ---------------------------------------------------------------------------

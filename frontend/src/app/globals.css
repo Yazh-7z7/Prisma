@@ -6,22 +6,22 @@
   --font-inter: "Inter", system-ui, sans-serif;
 
   /* Palette */
-  --bg-base: #05050a;
-  --bg-layer: #0d0d18;
-  --bg-card: #111128;
-  --bg-card-hover: #15153a;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  --bg-base: #f9fafb;
+  --bg-layer: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f3f4f6;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
 
-  /* Brand */
-  --brand: #7c5cfc;
-  --brand-light: #a78bfa;
-  --brand-glow: rgba(124, 92, 252, 0.35);
+  /* Brand (Red) */
+  --brand: #ef4444;
+  --brand-light: #f87171;
+  --brand-glow: rgba(239, 68, 68, 0.2);
 
   /* Text */
-  --text-primary: #f1f0ff;
-  --text-secondary: #9990d0;
-  --text-muted: #4f4d72;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
 
   /* Status colours */
   --valid: #22c55e;
@@ -53,27 +53,28 @@ body {
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-base); }
-::-webkit-scrollbar-thumb { background: var(--brand); border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
 /* ── Utility classes ─────────────────────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #ffffff 0%, var(--brand-light) 50%, var(--brand) 100%);
+  background: linear-gradient(135deg, #111827 0%, var(--brand) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border);
 }
 
 .glow-ring {
-  box-shadow: 0 0 0 1px var(--brand), 0 0 20px var(--brand-glow);
+  box-shadow: 0 0 0 1px var(--brand), 0 0 15px var(--brand-glow);
 }
 
 /* ── Card ────────────────────────────────────────────────────────────────── */
@@ -82,38 +83,41 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
   border-color: var(--border-strong);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
 /* ── Button ──────────────────────────────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, var(--brand), var(--brand-light));
+  background: var(--brand);
   color: #fff;
   font-weight: 600;
-  font-size: 0.9rem;
-  padding: 0.7rem 1.6rem;
-  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  padding: 0.75rem 1.8rem;
+  border-radius: 99px;
   border: none;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background 0.15s ease;
   white-space: nowrap;
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px var(--brand-glow);
+  transform: translateY(-1px);
+  background: #dc2626;
+  box-shadow: 0 6px 20px var(--brand-glow);
 }
 
 .btn-primary:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -124,15 +128,23 @@ body {
   background: transparent;
   color: var(--text-secondary);
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.btn-ghost:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.btn-ghost:hover { 
+  color: var(--text-primary); 
+  background: var(--bg-card-hover);
+}
+
+.btn-ghost.active {
+  color: var(--brand);
+  background: #fef2f2;
+}
 
 /* ── Badge ───────────────────────────────────────────────────────────────── */
 .badge {
@@ -141,7 +153,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 2px 10px;
+  padding: 3px 12px;
   border-radius: 99px;
 }
 
@@ -166,6 +178,7 @@ body {
   border-radius: 50%;
   background: #fff;
   transition: transform 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 /* ── Input ───────────────────────────────────────────────────────────────── */
@@ -173,30 +186,27 @@ body {
   width: 100%;
   background: var(--bg-layer);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.875rem;
-  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
   font-family: var(--font-inter);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.input:focus { border-color: var(--brand); }
+.input:focus { 
+  border-color: var(--brand); 
+  box-shadow: 0 0 0 3px var(--brand-glow);
+}
 .input::placeholder { color: var(--text-muted); }
 
-select.input option { background: var(--bg-layer); }
+select.input option { background: var(--bg-layer); color: var(--text-primary); }
 
 /* ── Animations ──────────────────────────────────────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse-ring {
-  0%   { box-shadow: 0 0 0 0 var(--brand-glow); }
-  70%  { box-shadow: 0 0 0 12px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
 }
 
 @keyframes spin {
@@ -206,13 +216,3 @@ select.input option { background: var(--bg-layer); }
 
 .animate-fadeup { animation: fadeUp 0.45s ease both; }
 .animate-spin   { animation: spin 1s linear infinite; }
-
-/* ── Noise overlay (subtle texture) ─────────────────────────────────────── */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
-}

@@ -201,8 +201,8 @@ No preamble, no explanation — just the clean final list."""
                 for c in correlations[:8]:  # cap to avoid prompt bloat
                     parts.append(
                         f"  - {c.get('var1')} vs {c.get('var2')}: "
-                        f"r={c.get('correlation', 0):.3f}, "
-                        f"p={c.get('p_value', 1):.4f}"
+                        f"r={c.get('pearson', {}).get('r', c.get('correlation', 0)):.3f}, "
+                        f"p={c.get('pearson', {}).get('p', c.get('p_value', 1)):.4f}"
                     )
 
             # Group differences
@@ -211,9 +211,9 @@ No preamble, no explanation — just the clean final list."""
                 parts.append("GROUP DIFFERENCES:")
                 for g in group_diffs[:5]:
                     parts.append(
-                        f"  - {g.get('variable')} by {g.get('group_by')}: "
+                        f"  - {g.get('variable', g.get('var2', '?'))} by {g.get('group_by', g.get('var1', '?'))}: "
                         f"effect_size={g.get('effect_size', 0):.3f}, "
-                        f"significant={g.get('significant', False)}"
+                        f"significant={g.get('significant', True)}"
                     )
 
             # Summary stats (just mean/std for numeric cols)

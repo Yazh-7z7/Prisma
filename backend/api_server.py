@@ -33,21 +33,31 @@ from pydantic import BaseModel, Field
 # Make sure backend/ can resolve its own siblings regardless of working dir
 # ---------------------------------------------------------------------------
 _HERE = os.path.dirname(os.path.abspath(__file__))
-if _HERE not in sys.path:
-    sys.path.insert(0, _HERE)
-
-# Also expose src/ so shared modules are importable
 _SRC = os.path.join(os.path.dirname(_HERE), "src")
+
+# 1. Insert src/
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+
+# 2. Insert backend/ (so it stays at index 0 and takes highest priority)
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
 
 from data_ingestion import ingest_file, DataIngestionError
 from stat_engine import analyze as stat_analyze
 from csvl_engine import run_csvl_pipeline
-from parser import parse_insights
 from validator import validate_claims
 from reporting import compute_metrics, generate_report
 from llm_client import LLMClient
+
+# Import backend/parser.py via importlib to avoid shadowing stdlib 'parser'
+import importlib.util as _ilu
+_parser_spec = _ilu.spec_from_file_location(
+    "prisma_parser", os.path.join(_HERE, "parser.py")
+)
+_parser_mod = _ilu.module_from_spec(_parser_spec)  # type: ignore[arg-type]
+_parser_spec.loader.exec_module(_parser_mod)        # type: ignore[union-attr]
+parse_insights = _parser_mod.parse_insights
 
 # ---------------------------------------------------------------------------
 # Logging
