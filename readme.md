@@ -1,8 +1,8 @@
-# Prisma — Hallucination-Aware Insight Generator
+# Prisma - A Hallucination-Aware Insight Generator
 
 <div align="center">
 
-**A production-grade, closed-loop self-validating pipeline for generating statistically grounded insights from tabular data — with built-in hallucination detection.**
+**A production-grade, closed-loop self-validating pipeline for generating statistically grounded insights from tabular data - with built-in hallucination detection.**
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-prisma--xi--seven.vercel.app-6366f1?style=for-the-badge&logo=vercel)](https://prisma-xi-seven.vercel.app/)
 [![Backend](https://img.shields.io/badge/Backend-Railway-0B0D0E?style=for-the-badge&logo=railway)](https://railway.app)
@@ -15,7 +15,7 @@
 
 ## What is Prisma?
 
-Most LLMs hallucinate. When applied to data analysis, this means confidently stating false statistics — a serious problem in any real-world decision pipeline.
+Most LLMs hallucinate. When applied to data analysis, this means confidently stating false statistics - a serious problem in any real-world decision pipeline.
 
 **Prisma** solves this by coupling LLM insight generation with a rigorous statistical ground truth engine. Every claim produced by the model is automatically parsed, looked up against pre-computed statistics, and classified as **Valid**, **Unverified**, or **Hallucination** before reaching the user.
 
@@ -50,30 +50,30 @@ CSV / XLSX Upload
 
 ## Key Features
 
-### 🔁 Closed-Loop Self-Validation (CSVL)
+### Closed-Loop Self-Validation (CSVL)
 The core differentiator. The pipeline doesn't just generate insights — it loops: generate → parse → validate → regenerate if hallucination rate is too high. This ensures the final output meets a quality threshold before being returned.
 
-### 📊 Statistical Ground Truth Engine
+### Statistical Ground Truth Engine
 Computed before any LLM call, giving the validator hard evidence:
 - **Pearson & Spearman** correlations with p-value significance
 - **T-test & ANOVA** for group difference claims
 - **Chi-Square** for categorical associations
 - **Z-score & IQR** for distribution/outlier claims
 
-### 🧠 Multi-Provider LLM Support
+### Multi-Provider LLM Support
 | Provider | Models |
 |---|---|
 | **Groq** | `llama-3.3-70b-versatile`, `mixtral-8x7b` |
 | **Gemini** | `gemini-1.5-flash`, `gemini-1.5-pro` |
 | **Ollama** | Any local model (`llama3`, `mistral`, etc.) |
 
-### 🏷️ Hallucination Classification
+###  Hallucination Classification
 Every insight is labeled:
-- ✅ **VALID** — Statistically supported (p < 0.05, correct direction)
-- ⚠️ **UNVERIFIED** — Variables not found or relationship too complex to validate
-- ❌ **HALLUCINATION** — Directly contradicted by the data
+-  **VALID** — Statistically supported (p < 0.05, correct direction)
+-  **UNVERIFIED** — Variables not found or relationship too complex to validate
+-  **HALLUCINATION** — Directly contradicted by the data
 
-### 📈 Metrics Dashboard
+###  Metrics Dashboard
 After each run, Prisma reports:
 - **Hallucination Rate** (HR)
 - **Precision & Recall** of valid insights
@@ -228,6 +228,4 @@ A claim is classified as a **Hallucination** if:
 
 ---
 
-## License
-
-MIT
+## Made by Yazh-7z7 & pufff22
