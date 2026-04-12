@@ -119,11 +119,14 @@ def _normalise(df: pd.DataFrame) -> pd.DataFrame:
 
     # Attempt numeric coercion on object columns
     for col in df.select_dtypes(include="object").columns:
-        converted = pd.to_numeric(df[col].str.strip(), errors="coerce")
+        # Safely strip only elements that are actually strings
+        stripped_series = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
+        
+        converted = pd.to_numeric(stripped_series, errors="coerce")
         if converted.notna().sum() / max(len(df), 1) > 0.8:
             df[col] = converted
         else:
-            df[col] = df[col].str.strip()
+            df[col] = stripped_series
 
     # Drop fully-duplicate rows
     before = len(df)

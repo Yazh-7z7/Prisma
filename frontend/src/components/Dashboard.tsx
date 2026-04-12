@@ -27,6 +27,16 @@ const STATUS_LABELS: Record<string, string> = {
   UNVERIFIED: "Unverified",
 };
 
+const DashboardIcons = {
+  total: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>,
+  valid: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>,
+  warning: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>,
+  rate: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>,
+  shield: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>,
+  brain: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path></svg>,
+};
+
+
 // ── Dashboard ──────────────────────────────────────────────────────────────
 
 export function Dashboard() {
@@ -69,24 +79,33 @@ export function Dashboard() {
       {/* Metric cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "1rem" }}>
         {[
-          { label: "Total Claims", value: metrics.total_claims, color: "var(--text-primary)" },
-          { label: "Valid Claims", value: metrics.valid_claims, color: "#22c55e" },
-          { label: "Hallucinations", value: metrics.hallucination_count, color: "#ef4444" },
-          { label: "Hallucination Rate", value: `${metrics.hallucination_rate ?? 0}%`, color: "#f97316" },
-          { label: "Validity Score", value: `${metrics.validity_score ?? 0}%`, color: "#22c55e" },
-          { label: "Avg Confidence", value: (metrics.avg_confidence ?? 0).toFixed(2), color: "var(--brand-light)" },
+          { label: "Total Claims", value: metrics.total_claims, color: "var(--text-primary)", icon: DashboardIcons.total },
+          { label: "Valid Claims", value: metrics.valid_claims, color: "var(--valid)", icon: DashboardIcons.valid },
+          { label: "Hallucinations", value: metrics.hallucination_count, color: "var(--h-relationship)", icon: DashboardIcons.warning },
+          { label: "Hallucination Rate", value: `${metrics.hallucination_rate ?? 0}%`, color: "var(--h-direction)", icon: DashboardIcons.rate },
+          { label: "Validity Score", value: `${metrics.validity_score ?? 0}%`, color: "var(--valid)", icon: DashboardIcons.shield },
+          { label: "Avg Confidence", value: (metrics.avg_confidence ?? 0).toFixed(2), color: "var(--h-variable)", icon: DashboardIcons.brain },
         ].map((m, i) => (
           <motion.div
             key={m.label}
             className="card"
+            style={{ borderBottom: `3px solid ${m.color}`, position: "relative", overflow: "hidden" }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06 }}
           >
-            <div style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", marginBottom: 6 }}>
-              {m.label}
+            <div style={{ position: "absolute", top: "-15px", right: "-15px", width: "90px", height: "90px", opacity: 0.04, pointerEvents: "none", color: "var(--text-primary)" }}>
+              {m.icon}
             </div>
-            <div style={{ fontSize: "1.6rem", fontWeight: 800, color: m.color }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: 6 }}>
+              <div style={{ width: "16px", height: "16px", color: m.color, flexShrink: 0 }}>
+                {m.icon}
+              </div>
+              <div style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", fontWeight: 700 }}>
+                {m.label}
+              </div>
+            </div>
+            <div style={{ fontSize: "1.85rem", fontWeight: 900, color: m.color, letterSpacing: "-1px" }}>
               {m.value}
             </div>
           </motion.div>

@@ -11,6 +11,11 @@ import type {
 } from "@/lib/api";
 
 export type AppPhase = "idle" | "uploaded" | "analyzing" | "complete" | "error";
+export const DEFAULT_MODEL_BY_PROVIDER = {
+  ollama: "gemma:2b",
+  groq: "llama-3.1-8b-instant",
+  gemini: "gemini-1.5-flash",
+} as const;
 
 interface PrismaState {
   phase: AppPhase;
@@ -22,12 +27,13 @@ interface PrismaState {
   fileName: string | null;
 
   // Settings
-  modelProvider: "ollama" | "openai" | "anthropic";
+  modelProvider: "ollama" | "groq" | "gemini";
   modelName: string;
   useCsvl: boolean;
   numInsights: number;
-  openaiKey: string;
-  anthropicKey: string;
+  groqKey: string;
+  geminiKey: string;
+  theme: "light" | "dark";
 
   // Results
   validationResults: ValidationResult[];
@@ -43,13 +49,14 @@ interface PrismaState {
   setAnalyzeResult: (res: AnalyzeResponse) => void;
   setError: (msg: string) => void;
   reset: () => void;
-  setModelProvider: (p: "ollama" | "openai" | "anthropic") => void;
+  setModelProvider: (p: "ollama" | "groq" | "gemini") => void;
   setModelName: (n: string) => void;
   setUseCsvl: (v: boolean) => void;
   setNumInsights: (n: number) => void;
-  setOpenaiKey: (k: string) => void;
-  setAnthropicKey: (k: string) => void;
+  setGroqKey: (k: string) => void;
+  setGeminiKey: (k: string) => void;
   setActiveTab: (t: PrismaState["activeTab"]) => void;
+  toggleTheme: () => void;
 }
 
 export const usePrismaStore = create<PrismaState>()((set) => ({
@@ -59,11 +66,12 @@ export const usePrismaStore = create<PrismaState>()((set) => ({
   metadata: null,
   fileName: null,
   modelProvider: "ollama",
-  modelName: "gemma:2b",
+  modelName: DEFAULT_MODEL_BY_PROVIDER.ollama,
   useCsvl: true,
   numInsights: 10,
-  openaiKey: "",
-  anthropicKey: "",
+  groqKey: "",
+  geminiKey: "",
+  theme: "light",
   validationResults: [],
   metrics: null,
   groundTruth: null,
@@ -75,6 +83,10 @@ export const usePrismaStore = create<PrismaState>()((set) => ({
       sessionId: res.session_id,
       metadata: res.metadata,
       fileName,
+      validationResults: [],
+      metrics: null,
+      groundTruth: null,
+      activeTab: "dashboard",
       error: null,
     }),
 
@@ -86,10 +98,15 @@ export const usePrismaStore = create<PrismaState>()((set) => ({
       validationResults: res.validation_results,
       metrics: res.metrics,
       groundTruth: res.ground_truth,
+      activeTab: "dashboard",
       error: null,
     }),
 
-  setError: (msg) => set({ phase: "error", error: msg }),
+  setError: (msg) =>
+    set((state) => ({
+      phase: state.sessionId ? "uploaded" : "error",
+      error: msg,
+    })),
 
   reset: () =>
     set({
@@ -98,16 +115,31 @@ export const usePrismaStore = create<PrismaState>()((set) => ({
       sessionId: null,
       metadata: null,
       fileName: null,
+      modelProvider: "ollama",
+      modelName: DEFAULT_MODEL_BY_PROVIDER.ollama,
+      useCsvl: true,
+      numInsights: 10,
       validationResults: [],
       metrics: null,
       groundTruth: null,
+      activeTab: "dashboard",
     }),
 
-  setModelProvider: (p) => set({ modelProvider: p }),
+  setModelProvider: (p) =>
+    set({
+      modelProvider: p,
+      modelName: DEFAULT_MODEL_BY_PROVIDER[p],
+      error: null,
+    }),
   setModelName: (n) => set({ modelName: n }),
   setUseCsvl: (v) => set({ useCsvl: v }),
   setNumInsights: (n) => set({ numInsights: n }),
-  setOpenaiKey: (k) => set({ openaiKey: k }),
-  setAnthropicKey: (k) => set({ anthropicKey: k }),
+  setGroqKey: (k) => set({ groqKey: k }),
+  setGeminiKey: (k) => set({ geminiKey: k }),
   setActiveTab: (t) => set({ activeTab: t }),
+  toggleTheme: () => set((state) => {
+    const newTheme = state.theme === "light" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", newTheme);
+    return { theme: newTheme };
+  }),
 }));

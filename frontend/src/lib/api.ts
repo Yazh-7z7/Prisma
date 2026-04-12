@@ -32,12 +32,27 @@ export interface UploadResponse {
 
 export interface AnalyzeRequest {
   session_id: string;
-  model_provider: "ollama" | "openai" | "anthropic";
+  model_provider: "ollama" | "groq" | "gemini";
   model_name?: string;
   use_csvl: boolean;
   num_insights: number;
-  openai_key?: string;
-  anthropic_key?: string;
+  groq_key?: string;
+  gemini_key?: string;
+}
+
+export interface ProviderInfo {
+  configured: boolean;
+  source: "backend_env" | "local_runtime";
+  requires_api_key: boolean;
+  env_var?: string | null;
+}
+
+export interface ProviderStatusResponse {
+  providers: {
+    ollama: ProviderInfo;
+    groq: ProviderInfo;
+    gemini: ProviderInfo;
+  };
 }
 
 export interface Claim {
@@ -118,5 +133,11 @@ export const api = {
   health: async (): Promise<{ status: string; version: string }> => {
     const res = await fetch(`${BASE}/health`);
     return handleResponse(res);
+  },
+
+  /** GET /providers/status */
+  providerStatus: async (): Promise<ProviderStatusResponse> => {
+    const res = await fetch(`${BASE}/providers/status`);
+    return handleResponse<ProviderStatusResponse>(res);
   },
 };

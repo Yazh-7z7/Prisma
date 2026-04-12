@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import io
 import json
+import importlib.util as _ilu
 import logging
 import os
 import sys
@@ -25,6 +26,7 @@ from functools import lru_cache
 from typing import Any
 
 import pandas as pd
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -33,7 +35,11 @@ from pydantic import BaseModel, Field
 # Make sure backend/ can resolve its own siblings regardless of working dir
 # ---------------------------------------------------------------------------
 _HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)
 _SRC = os.path.join(os.path.dirname(_HERE), "src")
+
+# Load the project .env once so provider keys are available automatically.
+load_dotenv(os.path.join(_ROOT, ".env"), override=False)
 
 # 1. Insert src/
 if _SRC not in sys.path:
@@ -45,18 +51,25 @@ if _HERE not in sys.path:
 
 from data_ingestion import ingest_file, DataIngestionError
 from stat_engine import analyze as stat_analyze
-from csvl_engine import run_csvl_pipeline
-from validator import validate_claims
 from reporting import compute_metrics, generate_report
 from llm_client import LLMClient
 
-# Import backend/parser.py via importlib to avoid shadowing stdlib 'parser'
-import importlib.util as _ilu
-_parser_spec = _ilu.spec_from_file_location(
-    "prisma_parser", os.path.join(_HERE, "parser.py")
-)
-_parser_mod = _ilu.module_from_spec(_parser_spec)  # type: ignore[arg-type]
-_parser_spec.loader.exec_module(_parser_mod)        # type: ignore[union-attr]
+
+def _load_local_module(module_name: str, filename: str):
+    """Load a backend sibling module directly from file to avoid name collisions."""
+    spec = _ilu.spec_from_file_location(module_name, os.path.join(_HERE, filename))
+    module = _ilu.module_from_spec(spec)  # type: ignore[arg-type]
+    spec.loader.exec_module(module)       # type: ignore[union-attr]
+    return module
+
+
+_csvl_mod = _load_local_module("prisma_csvl_engine", "csvl_engine.py")
+run_csvl_pipeline = _csvl_mod.run_csvl_pipeline
+
+_validator_mod = _load_local_module("prisma_validator", "validator.py")
+validate_claims = _validator_mod.validate_claims
+
+_parser_mod = _load_local_module("prisma_parser", "parser.py")
 parse_insights = _parser_mod.parse_insights
 
 # ---------------------------------------------------------------------------
@@ -82,12 +95,8 @@ app = FastAPI(
 # CORS — allow Vercel frontend (and local dev)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://*.vercel.app",
-        os.getenv("FRONTEND_URL", ""),
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -108,8 +117,8 @@ def _get_llm_client() -> LLMClient:
     if _llm_client is None:
         _llm_client = LLMClient(
             provider=os.getenv("DEFAULT_LLM_PROVIDER", "ollama"),
-            openai_key=os.getenv("OPENAI_API_KEY"),
-            anthropic_key=os.getenv("ANTHROPIC_API_KEY"),
+            groq_key=os.getenv("GROQ_API_KEY"),
+            gemini_key=os.getenv("GEMINI_API_KEY"),
         )
     return _llm_client
 
@@ -120,17 +129,28 @@ def _get_llm_client() -> LLMClient:
 
 class AnalyzeRequest(BaseModel):
     session_id: str = Field(..., description="Session ID returned by /upload")
-    model_provider: str = Field(default="ollama", description="ollama | openai | anthropic")
+    model_provider: str = Field(default="ollama", description="ollama | groq | gemini")
     model_name: str | None = Field(default=None, description="Model name within the provider")
     use_csvl: bool = Field(default=True, description="Enable Closed-Loop Self-Validation")
     num_insights: int = Field(default=10, ge=1, le=30)
-    openai_key: str | None = Field(default=None, description="Optional runtime OpenAI key")
-    anthropic_key: str | None = Field(default=None, description="Optional runtime Anthropic key")
+    groq_key: str | None = Field(default=None, description="Optional runtime Groq key")
+    gemini_key: str | None = Field(default=None, description="Optional runtime Gemini key")
 
 
 class HealthResponse(BaseModel):
     status: str
     version: str
+
+
+class ProviderInfo(BaseModel):
+    configured: bool
+    source: str
+    requires_api_key: bool
+    env_var: str | None = None
+
+
+class ProviderStatusResponse(BaseModel):
+    providers: dict[str, ProviderInfo]
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +165,36 @@ async def root():
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health():
     return {"status": "ok", "version": app.version}
+
+
+@app.get("/providers/status", response_model=ProviderStatusResponse, tags=["Health"])
+async def provider_status():
+    """
+    Return non-secret provider availability details for the frontend.
+    Keys stay on the backend; the UI only learns whether a provider is configured.
+    """
+    return {
+        "providers": {
+            "ollama": {
+                "configured": True,
+                "source": "local_runtime",
+                "requires_api_key": False,
+                "env_var": None,
+            },
+            "groq": {
+                "configured": bool(os.getenv("GROQ_API_KEY")),
+                "source": "backend_env",
+                "requires_api_key": True,
+                "env_var": "GROQ_API_KEY",
+            },
+            "gemini": {
+                "configured": bool(os.getenv("GEMINI_API_KEY")),
+                "source": "backend_env",
+                "requires_api_key": True,
+                "env_var": "GEMINI_API_KEY",
+            },
+        }
+    }
 
 
 # ---- /upload ---------------------------------------------------------------
@@ -198,10 +248,10 @@ async def analyze(body: AnalyzeRequest):
 
     # --- Update LLM keys if provided at runtime ---
     llm = _get_llm_client()
-    if body.openai_key:
-        llm.update_key("openai", body.openai_key)
-    if body.anthropic_key:
-        llm.update_key("anthropic", body.anthropic_key)
+    if body.groq_key:
+        llm.update_key("groq", body.groq_key)
+    if body.gemini_key:
+        llm.update_key("gemini", body.gemini_key)
 
     try:
         # 1. Statistical analysis (cached)
@@ -233,12 +283,20 @@ async def analyze(body: AnalyzeRequest):
                 ),
             )
 
-        if not llm_output:
-            raise ValueError("LLM returned an empty response.")
+        if not llm_output or not llm_output.strip():
+            raise ValueError(
+                f"The {body.model_provider} provider returned an empty response. "
+                "Check the API key, selected model, or try disabling CSVL for a direct generation pass."
+            )
 
         # 4. Parse
         logger.info("[%s] Step 3 — parsing insights", body.session_id)
         claims = parse_insights(llm_output)
+        if not claims:
+            raise ValueError(
+                "The model responded, but Prisma could not parse any numbered insights from it. "
+                "Try disabling CSVL or switching providers/models."
+            )
 
         # 5. Validate
         logger.info("[%s] Step 4 — validating claims", body.session_id)
@@ -338,5 +396,19 @@ def _direct_prompt(summary: str) -> str:
 
 
 def _serialize(obj: Any) -> Any:
-    """Recursively make an object JSON-serialisable."""
-    return json.loads(json.dumps(obj, default=str))
+    """Recursively make an object JSON-serialisable and replace NaNs with None."""
+    import math
+    # 1. Force python native scalar types (resolve np.int64, etc.)
+    simple_obj = json.loads(json.dumps(obj, default=str))
+    
+    # 2. Walk and replace `nan` (which Starlette strict JSON rejects) with None
+    def _sanitize(o: Any) -> Any:
+        if isinstance(o, float) and math.isnan(o):
+            return None
+        elif isinstance(o, dict):
+            return {k: _sanitize(v) for k, v in o.items()}
+        elif isinstance(o, list):
+            return [_sanitize(v) for v in o]
+        return o
+        
+    return _sanitize(simple_obj)

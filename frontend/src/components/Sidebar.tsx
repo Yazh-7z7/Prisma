@@ -26,86 +26,120 @@ const NAV = [
 ] as const;
 
 export function Sidebar() {
-  const { activeTab, setActiveTab, reset } = usePrismaStore();
+  const { activeTab, setActiveTab, reset, theme, toggleTheme } = usePrismaStore();
 
   return (
     <aside
       style={{
-        width: 260,
-        minHeight: "100vh",
+        width: 280,
+        minWidth: 280,
+        height: "100dvh",
+        minHeight: "100dvh",
         background: "var(--bg-layer)",
         borderRight: "1px solid var(--border)",
         display: "flex",
         flexDirection: "column",
-        padding: "2rem 1.5rem",
-        gap: "2rem",
+        padding: "2rem 1.5rem 1.25rem",
         position: "sticky",
         top: 0,
-        height: "100vh",
         overflowY: "auto",
+        alignSelf: "flex-start",
       }}
     >
-      {/* Logo */}
-      <div style={{ paddingLeft: "0.5rem" }}>
-        <div
-          style={{
-            fontSize: "1.75rem",
-            fontWeight: 800,
-            letterSpacing: "-1px",
-            color: "var(--brand)",
-          }}
-        >
-          PRISMA
+      <div style={{ display: "flex", flexDirection: "column", gap: "2rem", minHeight: 0, flex: 1 }}>
+        {/* Logo */}
+        <div style={{ paddingLeft: "0.5rem" }}>
+          <div
+            onClick={reset}
+            style={{
+              fontSize: "1.75rem",
+              fontWeight: 800,
+              letterSpacing: "-1px",
+              color: "var(--brand)",
+              cursor: "pointer",
+              transition: "opacity 0.2s ease"
+            }}
+            onMouseOver={(e) => e.currentTarget.style.opacity = '0.7'}
+            onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+          >
+            PRISMA
+          </div>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2, fontWeight: 500 }}>
+            Hallucination-Aware AI
+          </div>
         </div>
-        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2, fontWeight: 500 }}>
-          Hallucination-Aware AI
-        </div>
-      </div>
 
-      {/* Nav */}
-      <nav style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-        {NAV.map((item) => {
-          const active = activeTab === item.id;
-          return (
+        {/* Nav */}
+        <nav style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+          {NAV.map((item) => {
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  padding: "0.75rem 1rem",
+                  borderRadius: "var(--radius-sm)",
+                  border: "none",
+                  background: active ? "var(--bg-card-hover)" : "transparent",
+                  color: active ? "var(--brand)" : "var(--text-secondary)",
+                  fontWeight: active ? 600 : 500,
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
+                  width: "100%",
+                  textAlign: "left",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <div style={{ display: "flex", color: active ? "var(--brand)" : "currentcolor" }}>
+                  {item.icon}
+                </div>
+                {item.label}
+              </button>
+             );
+          })}
+        </nav>
+
+        <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div style={{ height: 1, background: "var(--border)" }} />
+
+          <button className="btn-ghost" onClick={reset} style={{ width: "100%", justifyContent: "center", minHeight: 52 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            New Dataset
+          </button>
+
+          {/* Theme Toggle & Footer */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 0.5rem" }}>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+              Prisma v1.0
+            </div>
             <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={toggleTheme}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.75rem",
-                padding: "0.75rem 1rem",
-                borderRadius: "var(--radius-sm)",
+                background: "none",
                 border: "none",
-                background: active ? "var(--bg-card-hover)" : "transparent",
-                color: active ? "var(--brand)" : "var(--text-secondary)",
-                fontWeight: active ? 600 : 500,
-                fontSize: "0.9rem",
+                color: "var(--text-secondary)",
                 cursor: "pointer",
-                width: "100%",
-                textAlign: "left",
-                transition: "all 0.2s ease",
+                display: "flex",
+                padding: 4,
+                borderRadius: "50%",
+                transition: "all 0.2s"
               }}
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+              onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
             >
-              <div style={{ display: "flex", color: active ? "var(--brand)" : "currentcolor" }}>
-                {item.icon}
-              </div>
-              {item.label}
+              {theme === "light" ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+              )}
             </button>
-           );
-        })}
-      </nav>
-
-      <div style={{ height: 1, background: "var(--border)" }} />
-
-      <button className="btn-ghost" onClick={reset} style={{ width: "100%", justifyContent: "center" }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-        New Dataset
-      </button>
-
-      {/* Footer */}
-      <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textAlign: "center" }}>
-        Prisma v1.0
+          </div>
+        </div>
       </div>
     </aside>
   );

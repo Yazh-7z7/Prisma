@@ -2,7 +2,7 @@
 llm_client.py — Unified LLM client for the FastAPI backend
 Prisma | Production-Grade Backend
 
-Pluggable provider system: Ollama / OpenAI / Anthropic.
+Pluggable provider system: Ollama / Groq / Gemini.
 Mirrors the provider pattern in src/llm_generator.py but is
 import-safe (no Streamlit dependency) and async-ready.
 """
@@ -37,34 +37,36 @@ class OllamaClient:
             ) from exc
 
 
-class OpenAIClient:
+class GroqClient:
     def __init__(self, api_key: str) -> None:
         import openai
-        self._client = openai.OpenAI(api_key=api_key)
+        # Groq seamlessly supports the OpenAI SDK!
+        self._client = openai.OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
 
     def generate(self, prompt: str, model: str | None = None, **_: Any) -> str:
-        model = model or "gpt-4-turbo"
+        model = model or "llama3-8b-8192"
         resp = self._client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2048,
         )
-        return resp.choices[0].message.content or ""
+        return (resp.choices[0].message.content or "").strip()
 
 
-class AnthropicClient:
+class GeminiClient:
     def __init__(self, api_key: str) -> None:
-        import anthropic
-        self._client = anthropic.Anthropic(api_key=api_key)
+        import openai
+        # Google Gemini supports the OpenAI SDK natively!
+        self._client = openai.OpenAI(api_key=api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
 
     def generate(self, prompt: str, model: str | None = None, **_: Any) -> str:
-        model = model or "claude-3-sonnet-20240229"
-        msg = self._client.messages.create(
+        model = model or "gemini-1.5-flash"
+        resp = self._client.chat.completions.create(
             model=model,
-            max_tokens=2048,
             messages=[{"role": "user", "content": prompt}],
+            max_tokens=2048,
         )
-        return msg.content[0].text if msg.content else ""
+        return (resp.choices[0].message.content or "").strip()
 
 
 # ---------------------------------------------------------------------------
@@ -77,33 +79,33 @@ class LLMClient:
 
     Usage:
         client = LLMClient(provider="ollama")
-        text = client.generate(prompt, provider="ollama", model="gemma:2b")
+        text = client.generate(prompt, provider="groq", model="llama3-8b-8192")
     """
 
     def __init__(
         self,
         provider: str = "ollama",
-        openai_key: str | None = None,
-        anthropic_key: str | None = None,
+        groq_key: str | None = None,
+        gemini_key: str | None = None,
     ) -> None:
         self._providers: dict[str, Any] = {}
         self._default_provider = provider
 
         self._providers["ollama"] = OllamaClient()
 
-        oai_key = openai_key or os.getenv("OPENAI_API_KEY", "")
-        if oai_key:
+        g_key = groq_key or os.getenv("GROQ_API_KEY", "")
+        if g_key:
             try:
-                self._providers["openai"] = OpenAIClient(oai_key)
+                self._providers["groq"] = GroqClient(g_key)
             except Exception as exc:
-                logger.warning("OpenAI init failed: %s", exc)
+                logger.warning("Groq init failed: %s", exc)
 
-        ant_key = anthropic_key or os.getenv("ANTHROPIC_API_KEY", "")
-        if ant_key:
+        gem_key = gemini_key or os.getenv("GEMINI_API_KEY", "")
+        if gem_key:
             try:
-                self._providers["anthropic"] = AnthropicClient(ant_key)
+                self._providers["gemini"] = GeminiClient(gem_key)
             except Exception as exc:
-                logger.warning("Anthropic init failed: %s", exc)
+                logger.warning("Gemini init failed: %s", exc)
 
     def generate(
         self,
@@ -121,9 +123,9 @@ class LLMClient:
         return client.generate(prompt, model=model)
 
     def update_key(self, provider: str, api_key: str) -> None:
-        if provider == "openai":
-            self._providers["openai"] = OpenAIClient(api_key)
-        elif provider == "anthropic":
-            self._providers["anthropic"] = AnthropicClient(api_key)
+        if provider == "groq":
+            self._providers["groq"] = GroqClient(api_key)
+        elif provider == "gemini":
+            self._providers["gemini"] = GeminiClient(api_key)
         else:
             logger.warning("Unknown provider for key update: %s", provider)

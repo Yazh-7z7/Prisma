@@ -42,28 +42,30 @@ async def run_csvl_pipeline(
     stats_block = _compact_stats(ground_truth)
 
     logger.info("[CSVL] Step 1 — generating initial insights …")
-    raw = await _llm(
+    raw = (await _llm(
         _prompt_generate(dataset_summary),
         llm_client, model_provider, model_name,
-    )
+    )).strip()
     if not raw:
         logger.warning("[CSVL] Step 1 empty — returning empty.")
         return ""
 
     logger.info("[CSVL] Step 2 — self-critique against ground truth …")
-    critique = await _llm(
+    critique = (await _llm(
         _prompt_critique(raw, stats_block),
         llm_client, model_provider, model_name,
-    )
+        fail_soft=True,
+    )).strip()
     if not critique:
         logger.warning("[CSVL] Step 2 empty — returning raw insights.")
         return raw
 
     logger.info("[CSVL] Step 3 — refining hallucinated claims …")
-    refined = await _llm(
+    refined = (await _llm(
         _prompt_refine(raw, critique, stats_block),
         llm_client, model_provider, model_name,
-    )
+        fail_soft=True,
+    )).strip()
     if not refined:
         logger.warning("[CSVL] Step 3 empty — returning raw insights.")
         return raw
@@ -161,6 +163,7 @@ async def _llm(
     client: Any,
     provider: str,
     model: str | None,
+    fail_soft: bool = False,
 ) -> str:
     """Dispatch to the async-aware llm_client wrapper."""
     try:
@@ -171,8 +174,10 @@ async def _llm(
             lambda: client.generate(prompt, provider=provider, model=model),
         )
     except Exception as exc:
-        logger.error("[CSVL] LLM call failed: %s", exc)
-        return ""
+        logger.error("[CSVL] LLM call failed for provider=%s model=%s: %s", provider, model, exc)
+        if fail_soft:
+            return ""
+        raise RuntimeError(f"{provider} provider failed for model '{model or 'default'}': {exc}") from exc
 
 
 def _compact_stats(ground_truth: dict[str, Any]) -> str:
