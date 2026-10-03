@@ -24,7 +24,7 @@ logger = logging.getLogger("Prisma.CSVLEngine")
 # ---------------------------------------------------------------------------
 
 async def run_csvl_pipeline(
-    ground_truth: dict[str, Any],
+    ground_truth: Any,           # prisma.GroundTruth (preferred) or legacy dict
     dataset_summary: str,
     llm_client: Any,             # compatible with backend/llm_client.py
     model_provider: str = "ollama",
@@ -79,7 +79,7 @@ async def run_csvl_pipeline(
 # ---------------------------------------------------------------------------
 
 def run_csvl_pipeline_sync(
-    ground_truth: dict[str, Any],
+    ground_truth: Any,
     dataset_summary: str,
     llm_client: Any,
     model_provider: str = "ollama",
@@ -180,8 +180,15 @@ async def _llm(
         raise RuntimeError(f"{provider} provider failed for model '{model or 'default'}': {exc}") from exc
 
 
-def _compact_stats(ground_truth: dict[str, Any]) -> str:
-    """Produce a short stats string for prompt injection."""
+def _compact_stats(ground_truth: Any) -> str:
+    """Ground-truth text for the critique/refine prompts.
+
+    G2 fix: when given a ``prisma.GroundTruth`` the critic sees the full ranked store
+    (all claim types, directions, higher groups, tested-null pairs), not "the first 8
+    correlations" as before. The legacy-dict branch below is kept only as a fallback.
+    """
+    if hasattr(ground_truth, "to_prompt_block"):
+        return ground_truth.to_prompt_block()
     try:
         parts: list[str] = []
 

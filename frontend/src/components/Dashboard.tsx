@@ -16,6 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
   HALLUCINATION_MAGNITUDE: "#eab308",
   HALLUCINATION_VARIABLE: "#a855f7",
   UNVERIFIED: "#6b7280",
+  DESCRIPTIVE_INCORRECT: "#06b6d4",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,6 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
   HALLUCINATION_MAGNITUDE: "Magnitude",
   HALLUCINATION_VARIABLE: "Variable",
   UNVERIFIED: "Unverified",
+  DESCRIPTIVE_INCORRECT: "Descriptive (incorrect)",
 };
 
 const DashboardIcons = {

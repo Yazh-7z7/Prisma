@@ -18,7 +18,7 @@ from typing import Any
 
 logger = logging.getLogger("Prisma.Reporting")
 
-# Six-label taxonomy
+# Six-label taxonomy (descriptive C4 claims are reported separately)
 TAXONOMY_LABELS = [
     "VALID",
     "HALLUCINATION_RELATIONSHIP",
@@ -34,51 +34,11 @@ TAXONOMY_LABELS = [
 # ---------------------------------------------------------------------------
 
 def compute_metrics(validation_results: list[dict[str, Any]]) -> dict[str, Any]:
-    """
-    Compute aggregated metrics from a list of validation result dicts.
-
-    Returns a metrics dict consumed by both the API and the frontend.
-    """
-    total = len(validation_results)
-    if total == 0:
-        return _empty_metrics()
-
-    counts: dict[str, int] = {label: 0 for label in TAXONOMY_LABELS}
-    confidence_by_label: dict[str, list[float]] = {label: [] for label in TAXONOMY_LABELS}
-
-    for vr in validation_results:
-        status = vr.get("status", "UNVERIFIED")
-        counts[status] = counts.get(status, 0) + 1
-        conf: float = vr.get("claim", {}).get("confidence_score", 0.5)
-        confidence_by_label.setdefault(status, []).append(float(conf))
-
-    valid_count = counts.get("VALID", 0)
-    hallucination_count = sum(
-        counts.get(l, 0) for l in TAXONOMY_LABELS if l.startswith("HALLUCINATION")
-    )
-
-    return {
-        "total_claims": total,
-        "valid_claims": valid_count,
-        "verified_claims": valid_count,
-        "hallucination_count": hallucination_count,
-        "unverified_count": counts.get("UNVERIFIED", 0),
-        "hallucination_rate": round(hallucination_count / total * 100, 1),
-        "validity_score": round(valid_count / total * 100, 1),
-        "taxonomy_distribution": counts,
-        "confidence_by_label": {
-            label: round(sum(vals) / len(vals), 3) if vals else 0.0
-            for label, vals in confidence_by_label.items()
-        },
-        "avg_confidence": round(
-            sum(
-                vr.get("claim", {}).get("confidence_score", 0.5)
-                for vr in validation_results
-            )
-            / total,
-            3,
-        ),
-    }
+    """Legacy-shaped metrics (dashboard contract). The arithmetic lives in
+    ``prisma.metrics``; ``hallucination_rate``/``validity_score`` are PERCENT here
+    and every metric also has an explicit ``*_frac`` / ``*_pct`` twin (fixes B7)."""
+    from prisma.metrics import compute_metrics as _core, to_legacy_metrics
+    return to_legacy_metrics(_core(validation_results))
 
 
 def generate_report(
@@ -159,7 +119,8 @@ def _markdown_report(payload: dict[str, Any]) -> str:
         f"| Unverified | {m['unverified_count']} |",
         f"| Hallucination Rate | {m['hallucination_rate']}% |",
         f"| Validity Score | {m['validity_score']}% |",
-        f"| Avg Confidence | {m['avg_confidence']} |",
+        f"| Avg Support Score (uncalibrated) | {m['avg_confidence']} |",
+        f"| Hallucination Rate (fraction) | {m.get('hallucination_rate_frac')} |",
         "",
         "## Taxonomy Distribution",
         "",
@@ -174,7 +135,7 @@ def _markdown_report(payload: dict[str, Any]) -> str:
         reason = vr.get("reason", "")
         conf = vr.get("claim", {}).get("confidence_score", 0.5)
         lines.append(f"### {i}. {claim_text}")
-        lines.append(f"**Status:** `{status}`  **Confidence:** {conf:.2f}")
+        lines.append(f"**Status:** `{status}`  **Support:** {conf:.2f}")
         lines.append(f"**Reason:** {reason}")
         lines.append("")
 

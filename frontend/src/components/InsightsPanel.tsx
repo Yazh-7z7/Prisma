@@ -13,6 +13,7 @@ const ALL_STATUSES = [
   "HALLUCINATION_MAGNITUDE",
   "HALLUCINATION_VARIABLE",
   "UNVERIFIED",
+  "DESCRIPTIVE_INCORRECT",
 ];
 
 export function InsightsPanel() {

@@ -11,6 +11,7 @@ const TAXONOMY_ORDER = [
   "HALLUCINATION_MAGNITUDE",
   "HALLUCINATION_VARIABLE",
   "UNVERIFIED",
+  "DESCRIPTIVE_INCORRECT",
 ];
 
 const TAXONOMY_DESC: Record<string, string> = {
@@ -20,6 +21,7 @@ const TAXONOMY_DESC: Record<string, string> = {
   HALLUCINATION_MAGNITUDE: "The strength of a relationship is significantly overstated or understated.",
   HALLUCINATION_VARIABLE: "The claim references a column name that does not exist in the dataset.",
   UNVERIFIED: "The claim cannot be verified against available statistical evidence.",
+  DESCRIPTIVE_INCORRECT: "A quoted summary statistic (mean, range, count...) does not match the data. Reported separately from the taxonomy.",
 };
 
 export function ValidationPanel() {

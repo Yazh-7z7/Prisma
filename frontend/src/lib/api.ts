@@ -11,7 +11,8 @@ export type ValidationStatus =
   | "HALLUCINATION_DIRECTION"
   | "HALLUCINATION_MAGNITUDE"
   | "HALLUCINATION_VARIABLE"
-  | "UNVERIFIED";
+  | "UNVERIFIED"
+  | "DESCRIPTIVE_INCORRECT";
 
 export interface DatasetMetadata {
   filename: string;

@@ -49,10 +49,16 @@ if _SRC not in sys.path:
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 
+if _ROOT not in sys.path:          # so `import prisma` (repo-root package) works on Railway
+    sys.path.insert(0, _ROOT)
+
 from data_ingestion import ingest_file, DataIngestionError
-from stat_engine import analyze as stat_analyze
-from reporting import compute_metrics, generate_report
+from reporting import generate_report
 from llm_client import LLMClient
+from prisma import (
+    IngestError, PrismaConfig, build_ground_truth, compute_metrics, parse_insights,
+    to_legacy_metrics, validate_claims,
+)
 
 
 def _load_local_module(module_name: str, filename: str):
@@ -66,11 +72,19 @@ def _load_local_module(module_name: str, filename: str):
 _csvl_mod = _load_local_module("prisma_csvl_engine", "csvl_engine.py")
 run_csvl_pipeline = _csvl_mod.run_csvl_pipeline
 
-_validator_mod = _load_local_module("prisma_validator", "validator.py")
-validate_claims = _validator_mod.validate_claims
 
-_parser_mod = _load_local_module("prisma_parser", "parser.py")
-parse_insights = _parser_mod.parse_insights
+def _load_prisma_config() -> PrismaConfig:
+    """Single analysis config (Cohen thresholds, FDR alpha, ...) from config/config.yaml."""
+    path = os.path.join(_ROOT, "config", "config.yaml")
+    try:
+        return PrismaConfig.from_yaml(path)
+    except FileNotFoundError:
+        return PrismaConfig()
+    except Exception as exc:                      # a bad config must be loud, not silent
+        raise RuntimeError(f"Invalid prisma section in {path}: {exc}") from exc
+
+
+_PRISMA_CFG = _load_prisma_config()
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -254,20 +268,22 @@ async def analyze(body: AnalyzeRequest):
         llm.update_key("gemini", body.gemini_key)
 
     try:
-        # 1. Statistical analysis (cached)
+        # 1. Statistical ground truth (v2: every tested pair, Cohen tiers, BH-FDR, no imputation)
         logger.info("[%s] Step 1 — statistical analysis", body.session_id)
-        ground_truth = stat_analyze(df)
+        gt = build_ground_truth(df, _PRISMA_CFG)
+        ground_truth = gt.to_legacy_dict()
+        session["gt"] = gt
         session["ground_truth"] = ground_truth
 
-        # 2. Compact summary for LLM prompt
-        dataset_summary = _build_summary(df, ground_truth)
+        # 2. Prompt text from the SAME cleaned store the validator uses (G1)
+        dataset_summary = _build_summary(gt)
 
         # 3. LLM generation (sync from executor so we don't block)
         logger.info("[%s] Step 2 — LLM generation (CSVL=%s)", body.session_id, body.use_csvl)
 
         if body.use_csvl:
             llm_output = await run_csvl_pipeline(
-                ground_truth=ground_truth,
+                ground_truth=gt,
                 dataset_summary=dataset_summary,
                 llm_client=llm,
                 model_provider=body.model_provider,
@@ -291,7 +307,7 @@ async def analyze(body: AnalyzeRequest):
 
         # 4. Parse
         logger.info("[%s] Step 3 — parsing insights", body.session_id)
-        claims = parse_insights(llm_output)
+        claims = parse_insights(llm_output, gt.schema, gt.cfg)
         if not claims:
             raise ValueError(
                 "The model responded, but Prisma could not parse any numbered insights from it. "
@@ -300,10 +316,13 @@ async def analyze(body: AnalyzeRequest):
 
         # 5. Validate
         logger.info("[%s] Step 4 — validating claims", body.session_id)
-        validation_results = validate_claims(claims, ground_truth, list(df.columns))
+        verdicts = validate_claims(claims, gt)
+        validation_results = [v.to_legacy() for v in verdicts]
 
-        # 6. Metrics + report
-        metrics = compute_metrics(validation_results)
+        # 6. Metrics + report (core metrics are fractions; legacy keys are percent)
+        core_metrics = compute_metrics(verdicts)
+        metrics = to_legacy_metrics(core_metrics)
+        metrics["config_hash"] = gt.cfg.hash()
         dataset_name = session["metadata"].get("filename", "dataset")
         model_name = body.model_name or body.model_provider
         report_paths = generate_report(
@@ -331,6 +350,9 @@ async def analyze(body: AnalyzeRequest):
             "ground_truth": ground_truth,
         })
 
+    except IngestError as exc:
+        session["status"] = "error"
+        raise HTTPException(status_code=422, detail=f"Dataset cannot be analysed: {exc}")
     except Exception as exc:
         logger.exception("[%s] Analysis failed", body.session_id)
         session["status"] = "error"
@@ -361,29 +383,12 @@ async def get_results(session_id: str = Query(...)):
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _build_summary(df: pd.DataFrame, ground_truth: dict[str, Any]) -> str:
-    """Build a compact but information-rich summary string for the LLM."""
-    parts = [f"Dataset: {df.shape[0]} rows × {df.shape[1]} columns"]
-    parts.append(f"Columns: {', '.join(df.columns)}")
+def _build_summary(gt: Any) -> str:
+    """Prompt text = the full ranked ground-truth store (G1), not the top-5 correlations.
 
-    # Brief describe
-    try:
-        desc = df.describe(include="number").to_string()
-        parts.append(f"Numeric statistics:\n{desc[:800]}")
-    except Exception:
-        pass
-
-    # Top correlations
-    corrs = ground_truth.get("correlations", [])[:5]
-    if corrs:
-        parts.append("Top correlations:")
-        for c in corrs:
-            parts.append(
-                f"  {c['var1']} vs {c['var2']}: r={c['pearson']['r']:.2f}, "
-                f"p={c['pearson']['p']:.4f} ({c['strength']})"
-            )
-
-    return "\n".join(parts)
+    Generated from the cleaned data the validator also uses, so the model and the
+    checker can never disagree about e.g. Pima's zero-as-missing Insulin values."""
+    return gt.to_prompt_block()
 
 
 def _direct_prompt(summary: str) -> str:

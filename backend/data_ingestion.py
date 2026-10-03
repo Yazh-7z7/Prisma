@@ -82,6 +82,12 @@ def ingest_file(filename: str, content: bytes) -> tuple[pd.DataFrame, dict[str, 
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def _non_numeric_cols(df: pd.DataFrame) -> list[str]:
+    """dtype-agnostic (pandas 2 'object' and pandas 3 'str' string columns alike)."""
+    return [c for c in df.columns
+            if not pd.api.types.is_numeric_dtype(df[c]) and not pd.api.types.is_bool_dtype(df[c])]
+
+
 def _read_csv(content: bytes) -> pd.DataFrame:
     """Try UTF-8 then latin-1 fallback."""
     for enc in ("utf-8", "latin-1", "cp1252"):
@@ -118,7 +124,7 @@ def _normalise(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = [str(c).strip().replace("  ", " ") for c in df.columns]
 
     # Attempt numeric coercion on object columns
-    for col in df.select_dtypes(include="object").columns:
+    for col in _non_numeric_cols(df):
         # Safely strip only elements that are actually strings
         stripped_series = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
         
@@ -148,5 +154,5 @@ def _build_metadata(df: pd.DataFrame, filename: str) -> dict[str, Any]:
         "missing_counts": df.isna().sum().to_dict(),
         "missing_total": int(df.isna().sum().sum()),
         "numeric_columns": list(df.select_dtypes(include="number").columns),
-        "categorical_columns": list(df.select_dtypes(include=["object", "category", "bool"]).columns),
+        "categorical_columns": [c for c in df.columns if c not in set(df.select_dtypes(include="number").columns)],
     }

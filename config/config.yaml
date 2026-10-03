@@ -5,6 +5,29 @@ llm:
   default_provider: "ollama"
   default_model: "gemma:2b"
 
+# ---------------------------------------------------------------------------
+# prisma: THE single analysis config (design decision 6). Read by prisma/ and the API.
+# Keys must match prisma.config.PrismaConfig exactly (unknown keys raise at startup).
+# Any change here changes cfg.hash(), which every run log records.
+# ---------------------------------------------------------------------------
+prisma:
+  alpha: 0.05                      # applied to BH-FDR adjusted q-values
+  min_pair_n: 10
+  min_group_n: 5
+  r_thresholds: [0.1, 0.3, 0.5]    # Cohen: small / medium / large
+  d_thresholds: [0.2, 0.5, 0.8]
+  eta2_thresholds: [0.01, 0.06, 0.14]
+  w_thresholds: [0.1, 0.3, 0.5]
+  min_effect_tier: 1               # VALID needs q < alpha AND effect >= "small"
+  magnitude_tier_gap: 2            # MAGNITUDE error only if tiers differ by >= 2
+  numeric_r_abs_tol: 0.15
+  descriptive_rel_tol: 0.05
+  zero_as_missing: [glucose, bloodpressure, skinthickness, insulin, bmi]
+
+# ---------------------------------------------------------------------------
+# LEGACY: read only by the old src/ + app.py Streamlit tree (removed in Phase 7).
+# NOT used by prisma/ or backend/. Do not cite these thresholds (they are not Cohen's).
+# ---------------------------------------------------------------------------
 statistics:
   significance_level: 0.05
   correlation_threshold: 0.3

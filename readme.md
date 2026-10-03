@@ -229,3 +229,14 @@ A claim is classified as a **Hallucination** if:
 ---
 
 ## Made by Yazh-7z7 & pufff22
+
+
+## Core package and tests (Phase 1)
+
+All analysis logic lives in the web-free `prisma/` package (ground truth, parser, validator, metrics);
+the FastAPI backend, the CLI runner and the tests import it. See `docs/HANDOFF.md` section 9.
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+python -m pytest            # 128 tests, no network or LLM required
+```

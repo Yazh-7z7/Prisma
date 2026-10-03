@@ -17,6 +17,7 @@ ValidationStatus = Literal[
     "HALLUCINATION_MAGNITUDE",
     "HALLUCINATION_VARIABLE",
     "UNVERIFIED",
+    "DESCRIPTIVE_INCORRECT",
 ]
 
 TAXONOMY_LABELS: list[ValidationStatus] = [
