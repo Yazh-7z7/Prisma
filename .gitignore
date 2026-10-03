@@ -16,3 +16,18 @@ frontend/.env.local
 
 # Misc
 *.zip
+
+# --- added in phase 0 ---
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.tsbuildinfo
+.next/
+node_modules/
+outputs/
+.env.*
+!.env.example
+# experiment runs ARE committed (small JSONL = paper evidence):
+#   experiments/runs/**  is intentionally NOT ignored
